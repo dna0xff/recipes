@@ -13,7 +13,7 @@ onion, garlic, spring onion, ginger, chilli,
 vinegar, coconut milk, lemon grass, curry leaves, tomato
 salt, oil
 
-### Coconut sambal
+### Coconut Sambal
 desicated coconut
 "spices"
 lemon grass, salt
@@ -22,11 +22,13 @@ lemon grass, salt
 Kottu roti sauce, deviled cashews and Roti are all provided pre-done.
 
 ### Kotu roti curry base
-"spices"
-ginger, garlic, onion, capsicum, carrot, spring onion,tomato, curry leaves, coconut oil,
+"spices" - cardamon pods, cinamon, pandan leaves, chilie, roasted curry powder
+ginger, garlic, onion, capsicum, carrot, spring onion, tomato, curry leaves, coconut oil,
 oil, cocont cream, salt
 
 ### Roti
+flour, salt, sugar, ghee, egg, milk, water
+some not use egg&milk, some use condensed milk
 
 ### Deviled Cashews
 cashews, curry leaves
