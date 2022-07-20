@@ -2,7 +2,7 @@
 
 ## Ingredients
 ### Sauce
-1.5 tbsp Kicap manis  
+1.5 tbsp Kicap manis<br>
 4 tsp Dark soy <br>
 2 tsp Oyster <br>
 4 tbsp Ketchup <br>
@@ -12,19 +12,19 @@
 2 tbsp water <br>
 
 ### Others
-* 440g Yellow noodles Hokien wok ready
-* 3 tbsp oil
-* 3 cloves garlic
-* 1 small onion (70g) thinly sliced ( more)
-* 75g ++ chicken breast, diced ( more)
-* 150g Choy sum, leaves 1/3, stems 1cm
-* 100g cabbage
-* 150g firm tofu
-* 1/2 tomato   50g
-* 1 small potato 70g ( I used 2 ) 
-* Sambal & chillies
-* 3 eggs
-* 1 lime for juice & decoration
+440g Yellow noodles Hokien wok ready  
+3 tbsp oil  
+3 cloves garlic  
+1 small onion (70g) thinly sliced (more)  
+75g ++ chicken breast, diced (more)  
+150g Choy sum, leaves 1/3, stems 1cm  
+100g cabbage  
+150g firm tofu  
+1/2 tomato 50g  
+1 small potato 70g (I use 2)   
+Sambal & chillies  
+3 eggs  
+1 lime for juice & decoration  
 
 ## Method
 1. Blanch the mee in boiling water. Drain and set aside.
