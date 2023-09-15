@@ -2,7 +2,7 @@
 
 ## Ingredients
 4 eggs boiled 7 min  
-2 cuos rice  
+2 cups rice  
 red salmon 415g  
 butter  
 onion  
