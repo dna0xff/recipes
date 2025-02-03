@@ -34,23 +34,21 @@
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
 
-      // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
-      var DEMO_MODE = true;
+      var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       var latOffset = 0.01; lonOffset = 0.01;  // vars to fake movement for testing 0.01 is ~ 6nm
       var genAlarm = true;  // after a few iterations start to wander off track
       var loopCount = 0;
-      var checkTimerCreate = 0; alarmTimerCreate = 0;
 
       var dtr = Math.PI/180;
       // set these to your desired default values
-      var checkTime=10, acceptableVariation=20;
+      var checkTime=20, acceptableVariation=20;
       var initialLoc = { latitude: 0, longitude: 0 };
       var currentLoc = { latitude: 0, longitude: 0 };
       var estLoc     = { latitude: 0, longitude: 0 };
       var deltaT=0, deltaD=0, heading=0, course=0;
       var xte=0, cseError=0;
       var objectId = {};  // retrieve on start-up and reuse instead of looking up again and again
-      var c = {};  // retreive on start-up from css variables
+      var c = {};         // retreive on start-up from css variables
       // make this an object 
       var runStates = {
 	off:     "Off  ",
@@ -58,8 +56,10 @@
         run:     "Run  ",
         alarm:   "Alarm"
       };  // used to show / hide buttons 
-      // Alarm is a oneshot, once dismissed return to Run but may trigger again on next check
       var currentState = runStates.off;
+      var checkTimerCreate = 0;
+      // Alarm is a oneshot, once dismissed return to Run but may trigger again on next check
+      var alarmTimerCreate = 0;
       var alarmBg = true;  // used ofr toggling alarm flash
       var audioPlaying = false;
 
@@ -192,21 +192,24 @@
         // see if anything has been changed
 	if ( document.getElementById("checkTime").value != checkTime ) {
           checkTime = Number( document.getElementById("checkTime").value);
-          try { 
-	    window.clearInterval( checkTimer);
-	    checkTimerCreate--;
-	    // FIXME move all this to a function/ object  as now done in two places
-	    if ( currentState == runStates.run ) {
-	      // set interval timer min*60*1000 msec timer
-              timeMsec = checkTime*60*1000;
-	      if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
-	      checkTimer = window.setInterval(DoIt, timeMsec);
-	      checkTimerCreate++;
-              if ( checkTimerCreate > 1 ) console.log("ERROR: UpdateSettings Multiple check timers running");
+	  if (( currentState == runState.run ) | ( currentState == runState.alarm )) {
+            try { 
+	      window.clearInterval( checkTimer);
+	      checkTimerCreate--;
+	      // FIXME move all this to a function/ object  as now done in two places
+	      if ( currentState == runStates.run ) {
+	        // set interval timer min*60*1000 msec timer
+                timeMsec = checkTime*60*1000;
+	        if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
 	        checkTimer = window.setInterval(DoIt, timeMsec);
+	        checkTimerCreate++;
+                if ( checkTimerCreate > 1 ) console.log("ERROR: UpdateSettings Multiple check timers running");
+	          checkTimer = window.setInterval(DoIt, timeMsec);
+	      }
 	    }
+            catch { }
 	  }
-          catch { } // timer not running, settings changed before run so leave it alone
+	  // timer not running, settings changed before run so leave it alone
 	}
         if ( document.getElementById("accVar").value != acceptableVariation )
           acceptableVariation = Number( document.getElementById("accVar").value);
@@ -264,6 +267,9 @@
       // This is when we become active, only need heading for now
       function RunMain()
       {
+	// on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
+        document.getElementById("RunButton").disabled = true;
+	      // spin the cursor until callback? 
         if (navigator.geolocation) { 
           navigator.geolocation.getCurrentPosition(function(position) {
             currentLoc.latitude = position.coords.latitude;
@@ -283,8 +289,14 @@
 	    LogEntry( currentLoc );
             timeMsec = checkTime*60*1000;
 	    if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
-	    checkTimer = window.setInterval(DoIt, timeMsec);
-	    checkTimerCreate++;
+            if( checkTimerCreate < 1 ) {
+	       checkTimer = window.setInterval(DoIt, timeMsec);
+	       checkTimerCreate++;
+            }
+	    else {
+	      // timer already running, it's a logic error
+              console.log("timer already running when Callback in RunMain" );
+	    }
             if ( checkTimerCreate > 1 ) console.log("ERROR: RunMain Multiple check timers running");
           });
         } else {
@@ -828,7 +840,7 @@ function PadNumber( num, pre, places )
     <td><legend>Log</legend></td>
   </tr>
   <tr>
-    <textarea id="logTextArea" rows="15" cols="40"></textarea>
+    <textarea id="logTextArea" rows="15" cols="40" width="360px"></textarea>
   </tr>
   <tr>
    <td><button onclick="DisplayMain()" class="minorButton">Done</button></td>
@@ -837,4 +849,16 @@ function PadNumber( num, pre, places )
   </tbody>
 </table>
 </div>
+<p> Welcome, this is pretty simple.</p>
+<ol>
+  <li>Press Stby to capture an initial position.</li>
+  <li>Get your vessel on to the desired heading, trim etc.</li>
+  <li>Settings for desired checking interval and off-course limit.</li>
+  <li>press Run to capture the current position. A heading will be calculated and a timer started.</li>
+  <li>When the timer goes off the current position will be updated and the course checked against the heading from earlier.</li>
+  <li>If am alarm condition exists, the screen will flash and the klaxon will sound.</li>
+  <li>Dismiss the alarm will stop the noise BUT the alarm condition still exists and will trigger again next check.</li>
+  <li>can either change settings, go to standby or turn off</li>
+</ol>
+
 </body></html>
