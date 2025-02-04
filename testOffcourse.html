@@ -7,18 +7,18 @@
     <meta name="viewport" content="width=320, user-scalable=yes, initial-scale=1">
     <style>
       :root { --main-text: #000080; --main-out: #B3B3D9; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
-              --main-off:  #B3B3D9; --main-run: #90EE90; --main-stby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
+              --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
       h1 { color: blue; font-size: 24px; }
       .outData { padding: 6px 20px; margin-bottom: 20px; line-height: normal; width: 30%;
-	         color: var(--main-text);
-	         /*background: var(--main-out); color: var(--main-text); 
-		 border: 1px solid #ddd; */ border-radius: 4px; font-size: 18px; font-weight: bold; }
+                 color: var(--main-text);
+                 /*background: var(--main-out); color: var(--main-text); 
+                 border: 1px solid #ddd; */ border-radius: 4px; font-size: 18px; font-weight: bold; }
       .setOut { color: var(--main-text); font-size: 16px; font-weight: bold; }
       .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 8px; }
 
       .noHover { padding: 12px 24px; background: var(--grey-button); color: #8f8d8a;
-	       font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
-	       border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
+               font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+               border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
 
       /* the real McCoy  don't specify border: none; it kills the click effect */
       .majorButton { padding: 12px 24px; background: var(--main-button); color: white;
@@ -26,13 +26,13 @@
                      border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
       .majorButton:hover { outline-offset: 2px; } 
       .minorButton { padding: 9px 18px; background: var(--minor-button); color: white;
-	             font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
-		     border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
+                     font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+                     border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
       .minorButton:hover { outline-offset: 1px; } 
-		     /* for settings, its a long word */
+                     /* for settings, its a long word */
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
-	             font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
-	              border-radius: 8px; outline: 1px solid var(--minor-button); } 
+                     font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+                      border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
 
       legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px;}
@@ -52,7 +52,7 @@
 
       var dtr = Math.PI/180;
       // set these to your desired default values
-      var checkTime=20, acceptableVariation=20;
+      var checkTime=20, acceptableVariation=20; xteVariation=200;
       var initialLoc = { latitude: 0, longitude: 0 };
       var currentLoc = { latitude: 0, longitude: 0 };
       var estLoc     = { latitude: 0, longitude: 0 };
@@ -61,61 +61,159 @@
       var objectId = {};  // retrieve on start-up and reuse instead of looking up again and again
       var c = {};         // retreive on start-up from css variables
       // make this an object 
+      var but = {
+      reset: "ResetButton",
+      run:   "RunButton",
+      off:   "OffButton",
+      stby:  "StbyButton"
+      }
       var runStates = {
-	off:     "Off  ",
+        off:     "Off  ",
         standby: "Stdby",
         run:     "Run  ",
         alarm:   "Alarm"
-      };  // used to show / hide buttons 
+      } 
+      var screen = {
+        main: "main",
+        log:  "log",
+        settings: "settings"
+      }
       var currentState = runStates.off;
       var checkTimerCreate = 0;
       // Alarm is a oneshot, once dismissed return to Run but may trigger again on next check
-      var alarmTimerCreate = 0;
-      var alarmBg = true;  // used ofr toggling alarm flash
+      var flashTimerCreated = false;
+      var alarmBg = true;  // used for toggling alarm flash
       var audioPlaying = false;
 
       // onload Main function
       function StartApp()
       {
-	// get screen size and think about how big stuff needs to be
-	alert("Offcourse Alarm v"+version+"\n"+window.innerWidth+" px wide \n"+window.innerHeight+" px high");
-	document.getElementById("versionString").innerHTML ="Off-course Alarm v"+version;
-	if ( !navigator.geolocation ) {
-	  errStr = "Geolocation is not supported by this browser.";
-	  alert( errStr ); // not going to work 
-		// FIXME going to need to disable everything and just display some info
-          return;		
-	}
-	// get a bunch of object id's once so we dont do it multiple times 
-	// interesting, this is a hack to reuse previously retreived Id's 
-	// works ok as is but if used with backgroundColor and explicit values, flags a runtime error
-	// but when used with the color table below is Ok !! go figure.
+        // get screen size and think about how big stuff needs to be
+        alert("Offcourse Alarm v"+version+"\n"+window.innerWidth+" px wide \n"+window.innerHeight+" px high");
+        document.getElementById("versionString").innerHTML ="Off-course Alarm v"+version;
+        if ( !navigator.geolocation ) {
+          errStr = "Geolocation is not supported by this browser.";
+          alert( errStr ); // not going to work 
+          // FIXME going to need to disable everything and just display some info
+          return;
+        }
+        document.getElementById("MainPage").style.width = "320px"; 
+        // get a bunch of object id's once so we dont do it multiple times 
+        // interesting, this is a hack to reuse previously retreived Id's 
+        // works ok as is but if used with backgroundColor and explicit values, flags a runtime error
+        // but when used with the color table below is Ok !! go figure.
         objectId.main =  document.getElementById("MainPage");
         objectId.set =   document.getElementById("Settings");
-        objectId.alarm = document.getElementById("Alarm");
         objectId.log =   document.getElementById("Log");
 
-	// get our colors from the css
-	const root   = document.querySelector(':root');
-	c.off   = getComputedStyle(root).getPropertyValue("--main-off");
-	c.run   = getComputedStyle(root).getPropertyValue("--main-run");
-	c.err   = getComputedStyle(root).getPropertyValue("--main-err");
-	c.stby  = getComputedStyle(root).getPropertyValue("--main-stby");
-	c.alarm = getComputedStyle(root).getPropertyValue("--main-alarm");
+        // get our colors from the css
+        const root   = document.querySelector(':root');
+        c.off   = getComputedStyle(root).getPropertyValue("--main-off");
+        c.run   = getComputedStyle(root).getPropertyValue("--main-run");
+        c.err   = getComputedStyle(root).getPropertyValue("--main-err");
+        c.stby  = getComputedStyle(root).getPropertyValue("--main-standby");
+        c.alarm = getComputedStyle(root).getPropertyValue("--main-alarm");
 
-        // now the real setup	
-	SetupAudio();
+        // disable the reset button 
+        disableButton( but.reset );
+        // now the real setup
+        SetupAudio();
         DisplayMain();
       }
 
-      // perhaps a disable / enable button function that does the button and changes the class 
+// this function throws an exception when called from timer callback
+// however the enable does not ???
+// may be the add remove. If called twice then 
+
+      function disableButton( inButton )
+      {
+        if ( !document.getElementById(inButton).disabled ) {
+          document.getElementById(inButton).classList.remove("majorButton");
+          document.getElementById(inButton).classList.add("noHover");
+          document.getElementById(inButton).disabled = true;
+        }
+      }
+
+      function enableButton( inButton ) 
+      {
+        if ( document.getElementById(inButton).disabled ) {
+          //      console.log("enable inButton ::"+inButton+":: ");
+          document.getElementById(inButton).classList.add("majorButton");
+          document.getElementById(inButton).classList.remove("noHover");
+          document.getElementById(inButton).disabled = false;
+        }
+      }
+
+      function changeScreen( scr ) 
+      {
+        console.log( " change screen input is: "+scr );
+        switch( scr ) {
+          case screen.main: 
+            objectId.set.style.display="none";
+            objectId.log.style.display="none";
+            objectId.main.style.display="block";
+            break;
+          case screen.log:
+            objectId.set.style.display="none";
+            objectId.log.style.display="block";
+            objectId.main.style.display="none";
+            break;
+          case screen.settings:
+            objectId.set.style.display="block";
+            objectId.log.style.display="none";
+            objectId.main.style.display="none";
+            break;
+          default:
+            console.log( "oops, default: "+screen.main );
+            break;
+
+        }
+      }
+// when called from the alarm timer the button functions dont work
+      function changeState( inState )
+      { 
+        currentState = inState;
+        document.getElementById("z").value = currentState;
+        console.log("chg state: "+inState );
+        switch( inState ) {
+          case runStates.off:
+          console.log("chg state case: runStates.off ::"+inState+":: " );
+            objectId.main.style.backgroundColor = c.off; // LightTeal
+            disableButton( but.run );
+            disableButton( but.off );
+          break;
+          case runStates.standby:
+          console.log("chg state case: runStates.standby ::"+inState+":: " );
+            objectId.main.style.backgroundColor = c.stby; // Beer
+            enableButton( but.run );
+            enableButton( but.off );
+          break;
+          case runStates.run:
+          console.log("chg state case: runStates.run ::"+inState+":: " );
+            objectId.main.style.backgroundColor = c.run; // lightgreen
+            disableButton( but.run );
+            disableButton( but.reset);
+          break;
+          case runStates.alarm:
+          console.log("chg state case: runStates.alarm ::"+inState+":: " );
+            objectId.main.style.backgroundColor = c.alarm; // FireEngineRed
+            //disableButton( but.stby );
+            //disableButton( but.run );
+            //disableButton( but.off );
+            //enableButton( but.reset );
+          break;
+          default:
+            console.log( "oops, default::"+inState+":: " );
+          break;
+        }
+      }
 
       function SetupAudio()
       {
          audio = new Audio("Illustrious.wav");
          audio.loop = true;
          audio.volume = 0.2;
-	 console.log("audio src is: " + audio.src );
+         console.log("audio src is: " + audio.src );
       }
 
       // called from multiple places, on startup, when log dismissed when alarm dismissed 
@@ -123,27 +221,12 @@
       // so could come here in any of the run states
       function DisplayMain()
       {
-	if ( currentState == runStates.off ) {
-          objectId.main.style.backgroundColor = c.off; // LightTeal
-          document.getElementById("MainPage").style.width = "320px"; 
-	document.getElementById("RunButton").classList.remove("majorButton");
-	document.getElementById("RunButton").classList.add("noHover");
-          document.getElementById("RunButton").disabled = true;
-	document.getElementById("OffButton").classList.remove("majorButton");
-	document.getElementById("OffButton").classList.add("noHover");
-          document.getElementById("OffButton").disabled = true;
-	  ClearDisplay();
-	}
-	//UpdateDisplay();
-        /*document.getElementById("Settings").style.display="none";
-        document.getElementById("Alarm").style.display="none";
-        document.getElementById("Log").style.display="none";
-        document.getElementById("MainPage").style.display="block";
-	*/
-        objectId.alarm.style.display="none";
-        objectId.set.style.display="none";
-        objectId.log.style.display="none";
-        objectId.main.style.display="block";
+        if ( currentState == runStates.off ) {
+          changeState( runStates.off ); // ?? hih, why so
+          ClearDisplay();
+        }
+        //UpdateDisplay();
+        changeScreen( screen.main );
       }
 
       // clear all run values 
@@ -163,17 +246,8 @@
         document.getElementById("course").value = course+"°";
         document.getElementById("xteMain").value = xte+"m";
         document.getElementById("cseEMain").value = cseError+"°";
-
-	      // it's a duplicate and layed out the same, only different buttons - think about merging them
-        document.getElementById("deltaTAlarm").value = hrAndMin;
-        document.getElementById("headingAlarm").value = heading+"°";
-        document.getElementById("deltaDAlarm").value = deltaD+"nm";
-        document.getElementById("courseAlarm").value = course+"°";
-        document.getElementById("xteAlarm").value = xte+"m";
-        document.getElementById("cseEAlarm").value = cseError+"°";
       }
 
-      // don't bother with alarm page data, cannot access from here
       function ClearDisplay()
       {
         hrAndMin  = " ";
@@ -187,50 +261,52 @@
 
       function OutCChg()
       {
-	y = document.getElementById("y");
-	y.value = document.getElementById("accVar" ).value;
+        y = document.getElementById("y");
+        y.value = document.getElementById("accVar" ).value;
       }
 
       function OutXChg()
       {
-	y2 = document.getElementById("y2");
-	y2.value = document.getElementById("xtVar" ).value;
+        y2 = document.getElementById("y2");
+        y2.value = document.getElementById("xtVar" ).value;
       }
 
       function OutTChg()
       {
-	x = document.getElementById("x");
-	x.value = document.getElementById("checkTime" ).value;
+        x = document.getElementById("x");
+        x.value = document.getElementById("checkTime" ).value;
       }
 
       // Settings done button, see if anything has changes then apply it 
       function UpdateSettings()
       {
         // see if anything has been changed
-	if ( document.getElementById("checkTime").value != checkTime ) {
+        if ( document.getElementById("checkTime").value != checkTime ) {
           checkTime = Number( document.getElementById("checkTime").value);
-	  if (( currentState == runStates.run ) | ( currentState == runStates.alarm )) {
+          if (( currentState == runStates.run ) | ( currentState == runStates.alarm )) {
             try { 
-	      window.clearInterval( checkTimer);
-	      checkTimerCreate--;
-	      // FIXME move all this to a function/ object  as now done in two places
-	      if ( currentState == runStates.run ) {
-	        // set interval timer min*60*1000 msec timer
+              window.clearInterval( checkTimer);
+              checkTimerCreate--;
+              // FIXME move all this to a function/ object  as now done in two places
+              if ( currentState == runStates.run ) {
+                // set interval timer min*60*1000 msec timer
                 timeMsec = checkTime*60*1000;
-	        if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
-	        checkTimer = window.setInterval(DoIt, timeMsec);
-	        checkTimerCreate++;
+                if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
+                checkTimer = window.setInterval(DoIt, timeMsec);
+                checkTimerCreate++;
                 if ( checkTimerCreate > 1 ) console.log("ERROR: UpdateSettings Multiple check timers running");
-	          checkTimer = window.setInterval(DoIt, timeMsec);
-	      }
-	    }
+                  checkTimer = window.setInterval(DoIt, timeMsec);
+              }
+            }
             catch { }
-	  }
-	  // timer not running, settings changed before run so leave it alone
-	}
+          }
+          // timer not running, settings changed before run so leave it alone
+        }
         if ( document.getElementById("accVar").value != acceptableVariation )
           acceptableVariation = Number( document.getElementById("accVar").value);
-	DisplayMain();
+        if ( document.getElementById("xtVar").value != xteVariation )
+          xteVariation = Number( document.getElementById("xtVar").value);
+        DisplayMain();
       }
       
 
@@ -240,47 +316,40 @@
       // Standby button pressed, get current location
       function StandbyMain()
       {
-	if (( currentState == runStates.run ) | ( currentState == runStates.alarm )) {  // coming here fron button on run page 
-	  // Alert to confirm if in run mode, return ( do nothing ) if not confirmed
-	  if( !confirm("Standby will reset starting location and cancel current run mode" )) {
+        if (( currentState == runStates.run ) | ( currentState == runStates.alarm )) {  // coming here fron button on run page 
+          // Alert to confirm if in run mode, return ( do nothing ) if not confirmed
+          if( !confirm("Standby will reset starting location and cancel current run mode" )) {
             return;
           }
-          // fall through
-	  window.clearInterval( checkTimer);
-	  checkTimerCreate--;
-	  console.log("StandbyMain checkTimerCreate: "+checkTimerCreate );
-	}
+          // stop the clock!
+          window.clearInterval( checkTimer);
+          checkTimerCreate--;
+          console.log("StandbyMain checkTimerCreate: "+checkTimerCreate );
+        }
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
             console.log(`in StandbyMainCallback Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`);
             initialLoc.latitude = position.coords.latitude;
             initialLoc.longitude = position.coords.longitude;
-		  // not sure if we should zero these here
-            //currentLoc.latitude = 0;
-            //currentLoc.longitude = 0;
-	    UpdateDisplay();
-            objectId.main.style.backgroundColor = c.stby; // Beer
-	document.getElementById("RunButton").classList.add("majorButton");
-	document.getElementById("RunButton").classList.remove("noHover");
-            document.getElementById("RunButton").disabled = false;
-	document.getElementById("OffButton").classList.add("majorButton");
-	document.getElementById("OffButton").classList.remove("noHover");
-            document.getElementById("OffButton").disabled = false;
-            currentState = runStates.standby;
-	    LogEntry( initialLoc );
+            // not sure if we should zero these here
+            currentLoc.latitude = 0;
+            currentLoc.longitude = 0;
+            UpdateDisplay();
+            changeState( runStates.standby );
+            LogEntry( initialLoc );
           }
           function locationError(err) {
-	    // we come here if browser / load method doesn't allow geolocation, first call to API is when going into standby
+            // we come here if browser / load method doesn't allow geolocation, first call to API is when going into standby
             objectId.main.style.backgroundColor = c.err;  // Yellow
             console.warn('ERROR(' + err.code + '): ' + err.message);
             document.getElementById("z").value = 'ERROR(' + err.code + '): ' + err.message;
           }
         } else {
-	  errStr = "Geolocation is not supported by this browser.";
+          errStr = "Geolocation is not supported by this browser.";
           console.log( errStr );
           document.getElementById("z").value = 'ERROR(' + errStr + '): ' + err.message;
-	  // should bomb out here as not going to work at all
+          // should bomb out here as not going to work at all
         }
       }
 
@@ -288,12 +357,9 @@
       // This is when we become active, only need heading for now
       function RunMain()
       {
-	// on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
-	      // also stop the border animation
-	document.getElementById("RunButton").classList.remove("majorButton");
-	document.getElementById("RunButton").classList.add("noHover");
-        document.getElementById("RunButton").disabled = true;
-	      // spin the cursor until callback? 
+        // on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
+              disableButton( but.run );
+              // spin the cursor until callback? 
         if (navigator.geolocation) { 
           navigator.geolocation.getCurrentPosition(function(position) {
             currentLoc.latitude = position.coords.latitude;
@@ -301,27 +367,25 @@
             if ( DEMO_MODE ) {
               currentLoc.latitude = position.coords.latitude + latOffset;
               currentLoc.longitude = position.coords.longitude + lonOffset;
-	    }
+            }
             dAndc = DandCPlane( initialLoc, currentLoc);
             ResetData();
-	    heading = Math.round(dAndc.brg);
+            heading = Math.round(dAndc.brg);
             console.log(`in RunMain Lat:${currentLoc.latitude} Lon:${currentLoc.longitude} heading:${heading}`);
             document.getElementById("heading").value = heading+"°";
-	    document.getElementById("MainPage").style.backgroundColor = 'lightgreen';
-		   //dont hide if disabled??
-            //document.getElementById("RunButton").style.visibility="hidden";
-            currentState = runStates.run;
-	    LogEntry( currentLoc );
+            changeState( runStates.run );
+            LogEntry( currentLoc );
+            // start the clock
             timeMsec = checkTime*60*1000;
-	    if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
+            if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
             if( checkTimerCreate < 1 ) {
-	       checkTimer = window.setInterval(DoIt, timeMsec);
-	       checkTimerCreate++;
+               checkTimer = window.setInterval(DoIt, timeMsec);
+               checkTimerCreate++;
             }
-	    else {
-	      // timer already running, it's a logic error
+            else {
+              // timer already running, it's a logic error
               console.log("timer already running when Callback in RunMain" );
-	    }
+            }
             if ( checkTimerCreate > 1 ) console.log("ERROR: RunMain Multiple check timers running");
           });
         } else {
@@ -333,97 +397,93 @@
       // can call by button from run or standby states
       function OffMain()
       {
-	if ( currentState == runStates.run ) {
-	  // Alert to confirm if stay in run mode, return ( do nothing ) if not confirmed
-	  if( !confirm("tracking will terminate\n and all parameter reset" )) {
+        if ( currentState == runStates.run ) {
+          // Alert to confirm if stay in run mode, return ( do nothing ) if not confirmed
+          if( !confirm("tracking will terminate\n and all parameter reset" )) {
             return;
           }
           // fall through
-	}
-        objectId.main.style.backgroundColor = c.off; // LightTeal
-	document.getElementById("RunButton").classList.remove("majorButton");
-	document.getElementById("RunButton").classList.add("noHover");
-        document.getElementById("RunButton").disable = true;
-	document.getElementById("OffButton").classList.remove("majorButton");
-	document.getElementById("OffButton").classList.add("noHover");
-        document.getElementById("OffButton").disable = true;
-        currentState = runStates.off;
-	LogEntry( currentLoc );
-	// reset all tracking variables so as to not have random effects
-	ResetData();
-	UpdateDisplay();
-	// halt timer if set
-	  try { window.clearInterval( checkTimer )}
-	  catch(err) { } // do nothing, means we came back to off mode without running 
+        }
+        changeState( runStates.off );
+        LogEntry( currentLoc );
+        // reset all tracking variables so as to not have random effects
+        ResetData();
+        UpdateDisplay();
+        // halt timer if set
+          try { window.clearInterval( checkTimer )}
+          catch(err) { } // do nothing, means we came back to off mode without running 
       }
 
       // called by DoIt function if alarm condition exists
       function DisplayAlarm()
       {
         // toggle audio alarm and others?
-	if ( audioPlaying == false ) {
+        if ( audioPlaying == false ) {
           audio.play();
           audioPlaying = true;
-	}
-	// minor buttons hidden until dismiss then show
-        document.getElementById("alResetButton").style.visibility="visible";
-        document.getElementById("alDismissButton").style.visibility="hidden";
-        document.getElementById("alLogButton").style.visibility="hidden";
-	      // do this once in set up  width or max-width
-         document.getElementById("Alarm").style.width = "320px"; 
-        document.getElementById("Settings").style.display="none";
-        document.getElementById("Alarm").style.display="block";
-        document.getElementById("Log").style.display="none";
-        document.getElementById("MainPage").style.display="none";
-        objectId.alarm.style.backgroundColor = c.alarm; // FireEngineRed
-	// we don't drop a log here, the previous timeout will have logged run not alarm?
-        currentState = runStates.alarm;
-	alarmBg = true;
+        }
+        console.log("disp alarm but.reset is :"+but.reset+":: " );
+        enableButton( but.reset );
+        // these throw an exception
+            //disableButton( but.stby );
+            //disableButton( but.run );
+            //disableButton( but.off );
+        // if we are on the log or settings 
+        //changeScreen( screen.main );
+        changeState( runStates.alarm );
         document.getElementById("z").value = currentState;
+        alarmBg = true;
         // flash background  but only one timer please
-	try { if ( flashTimer ); }
-	catch(err) {  
-	  flashTimer = window.setInterval(ToggleScreen, 1000);
-          alarmTimerCreate++;
-	}
+        try {
+          if ( flashTimerCreated == false ) {
+            flashTimer = window.setInterval(ToggleScreen, 1000);
+            flashTimerCreated = true;
+          }
+        }
+        catch(err) {  
+          colsole.log (" error creating alarm timer " );
+        }
       }
 
       function ToggleScreen()
       {
-	 if ( alarmBg == true ) {
-           objectId.alarm.style.backgroundColor = c.stby; // Beer
+         if ( alarmBg == true ) {
+           objectId.main.style.backgroundColor = c.stby; // Beer
          }
          else {
-           objectId.alarm.style.backgroundColor = c.alarm; // FireEngineRed
-	 }
-	 alarmBg = !alarmBg;
+           objectId.main.style.backgroundColor = c.alarm; // FireEngineRed
+         }
+         alarmBg = !alarmBg;
       }
 
-      // Reset does not clear the alarm condition, it will fire again on the next check. 
+      // Reset will the alarm condition, it may fire again on the next check. 
       function Reset()
       {
-	if ( audioPlaying == true ) {
-	  audio.pause();
+        if ( audioPlaying == true ) {
+          audio.pause();
           audioPlaying = false;
-	}
-	// stop the screen flashing 
-	window.clearInterval( flashTimer );
-	alarmTimerCreate--;
-	// make sure we stop on red...
-        objectId.alarm.style.backgroundColor = c.alarm; // FireEngineRed
-	alarmBr = 0;
-        document.getElementById("alResetButton").style.visibility="hidden";
-        document.getElementById("alDismissButton").style.visibility="visible";
-        document.getElementById("alLogButton").style.visibility="visible";
+        }
+        // stop the screen flashing 
+        try {
+          if ( flashTimerCreated == true ) {
+            window.clearInterval( flashTimer );
+            flashTimerCreate = false;
+          }
+        }
+        catch ( err ){
+                // wtf? should have been there
+                flashTimerCreated = false;
+        }
+        alarmBg = true;
+        // disable the reset button and enable the rest 
+        //disableButton( but.reset);
+        changeState( runStates.run );
       }
 
       // From button of Main or Alarm divs
       function DisplayLog()
       {
-        document.getElementById("Settings").style.display="none";
-        document.getElementById("Alarm").style.display="none";
-        document.getElementById("Log").style.display="block";
-        document.getElementById("MainPage").style.display="none";
+        changeScreen( screen.log );
       }
 
       // From button of Main div
@@ -431,22 +491,19 @@
       {
         // copy current settings values to display objects both input & output
         document.getElementById("checkTime").value = checkTime;
-        document.getElementById("x").value = checkTime;
-        document.getElementById("accVar").value = acceptableVariation;
-        document.getElementById("y").value = acceptableVariation;
+        document.getElementById("x").value         = checkTime;
+        document.getElementById("accVar").value    = acceptableVariation;
+        document.getElementById("y").value         = acceptableVariation;
+        document.getElementById("xtVar").value     = xteVariation;
+        document.getElementById("y2").value        = xteVariation;
 
-	      // FIXME hmm, why heading alone here ??
+              // FIXME hmm, why heading alone here ??
         document.getElementById("heading").value = heading+"°";
-        document.getElementById("Settings").style.display="block";
-        document.getElementById("Alarm").style.display="none";
-        document.getElementById("Log").style.display="none";
-        document.getElementById("MainPage").style.display="none";
+
+        changeScreen( screen.settings );
       }
 
       // And now for the meat
-
-      // FIXME when in alarm state user looks at log, return goes to main screen
-      // but state still alarm. if next DoIt is not alarm condition it is not reset
 
       // Timer fires, get location calc course & distance
       // could also be on alt screen when update occurs
@@ -457,47 +514,47 @@
           navigator.geolocation.getCurrentPosition(function(position) {
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
-	    if( DEMO_MODE ){
+            if( DEMO_MODE ){
                 currentLoc.latitude +=  latOffset;
                 currentLoc.longitude += lonOffset;
-		// hmm, 10 min @ 5kts is about 800m 
-		// 0.001 degree ~ 108m so 0.005 should do it
-		latOffset += 0.005;  
-		lonOffset += 0.005;  
-		loopCount++;
-		if (loopCount > 10 ) {
-		  latOffset += 0.005;  
-		  lonOffset -= 0.010;  
-		}
-	        console.log(`DoIt loop: ${loopCount} LatOffset: ${latOffset}, LonOffset: ${lonOffset}`);
-	    }	    
-	    console.log(`DoIt cur posn Lat: ${currentLoc.latitude}, Lon: ${currentLoc.longitude}`);
+                // hmm, 10 min @ 5kts is about 800m 
+                // 0.001 degree ~ 108m so 0.005 should do it
+                latOffset += 0.005;  
+                lonOffset += 0.005;  
+                loopCount++;
+                if (loopCount > 10 ) {
+                  latOffset += 0.005;  
+                  lonOffset -= 0.010;  
+                }
+                console.log(`DoIt loop: ${loopCount} LatOffset: ${latOffset}, LonOffset: ${lonOffset}`);
+            }            
+            console.log(`DoIt cur posn Lat: ${currentLoc.latitude}, Lon: ${currentLoc.longitude}`);
             // calc deltaD and course
-	    dAndC = DandCPlane( initialLoc, currentLoc );
+            dAndC = DandCPlane( initialLoc, currentLoc );
             deltaD = Math.trunc(dAndC.dist*100)/100;
             deltaT += checkTime; // this could drift if user plays with check time
             course = Math.round(dAndC.brg);
-	    console.log(`DoIt course: ${course} deltaT: ${deltaT} deltaD: ${deltaD}`);
+            console.log(`DoIt course: ${course} deltaT: ${deltaT} deltaD: ${deltaD}`);
             // calc expected posn, use heading as set when changed to run mode
-	    estLoc = CalcEstPosition( initialLoc, deltaD, heading );
-	    console.log(`DoIt est posn Lat: ${estLoc.latitude}, Lon: ${estLoc.longitude}`);
+            estLoc = CalcEstPosition( initialLoc, deltaD, heading );
+            console.log(`DoIt est posn Lat: ${estLoc.latitude}, Lon: ${estLoc.longitude}`);
             // calc XTE and Cse Error
             dAndC2 = DandCPlane( estLoc, currentLoc );
             xte = Math.round(dAndC2.dist); // distance from expected location
-	    cseError = Math.abs( heading - course );   
-	    console.log(`DoIt xte: ${xte}, cseError: ${cseError}`);
-	    UpdateDisplay();
-	    if( cseError > acceptableVariation ) { // are we off course?
+            cseError = Math.abs( heading - course );   
+            console.log(`DoIt xte: ${xte}, cseError: ${cseError}`);
+            UpdateDisplay();
+            if( cseError > acceptableVariation ) { // are we off course?
               DisplayAlarm();
-	    } 
+            } 
             else {
-	      // has there been an alarm condition and now there is not?
-	      if( currentState == runStates.alarm ) {
-	        currentState == runStates.run;
+              // has there been an alarm condition and now there is not?
+              if( currentState == runStates.alarm ) {
+                currentState = runStates.run;
               }
-	    }
+            }
             // write log entry
-	    LogEntry( currentLoc );
+            LogEntry( currentLoc );
             // reset timer -- no need, its a recurring interval timer
           });
         } else {
@@ -508,57 +565,57 @@
 
       function DandCPlane( pos1, pos2 )
       {
-	console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
-	dlon = Math.abs( pos1.longitude - pos2.longitude) * 60;
-	dlat = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
+        dlon = Math.abs( pos1.longitude - pos2.longitude) * 60;
+        dlat = Math.abs( pos1.latitude - pos2.latitude ) * 60;
         distanceNM = Math.sqrt( dlat*dlat + dlon*dlon ); 
-	bearing = Math.acos(dlat/distanceNM)/dtr;
-	bearing2 = Math.asin(dlon/distanceNM)/dtr;
-	console.log(`D&C dlon:${dlon} dlat:${dlat} brg:${bearing} brg2:${bearing2} dist:${distanceNM}`);
-	return { dist: distanceNM, brg: bearing }
+        bearing = Math.acos(dlat/distanceNM)/dtr;
+        bearing2 = Math.asin(dlon/distanceNM)/dtr;
+        console.log(`D&C dlon:${dlon} dlat:${dlat} brg:${bearing} brg2:${bearing2} dist:${distanceNM}`);
+        return { dist: distanceNM, brg: bearing }
       }
 
 
       // used for current&original AND current&estimated
       function DistAndCourse( pos1, pos2 )
       {
-	// FIXME need to know if we are sailing away from equ / prime | anti meridian or towards
-	// FIXME need to see if we go around the horn either way
-	console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
-	dlon = Math.abs( pos1.longitude - pos2.longitude) * 60;
-	dlat = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-//	if ( pos1.latitude > pos2.latitude ) {
-	  //mlat = pos1.latitude + ( dlat / 2 );
+        // FIXME need to know if we are sailing away from equ / prime | anti meridian or towards
+        // FIXME need to see if we go around the horn either way
+        console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
+        dlon = Math.abs( pos1.longitude - pos2.longitude) * 60;
+        dlat = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+//        if ( pos1.latitude > pos2.latitude ) {
+          //mlat = pos1.latitude + ( dlat / 2 );
         //} else {
-	  //mlat = pos2.latitude + ( dlat / 2 );
+          //mlat = pos2.latitude + ( dlat / 2 );
         //}
-	      mlat = pos1.latitude;  //so close just pick one
-	      // FIXME need to ensure m-lat 0-90 // dlon in minutes 
-	departure = dlon * cosd( mlat );
-	      // FIXME may need to adjust for quadrant
-	bearing = atand( departure / dlon);
-	distance = dlat / cosd( bearing );  // this is in degrees
-	console.log(`D&C dlon:${dlon} dlat:${dlat} mlat:${mlat} dep:${departure} brg:${bearing} dist:${distance}`);
-	distanceNM = distance;   // minutes 
-	//console.log(`DandC dist: ${distanceNM} direction: ${bearing}` );
-	// return distance(nm), brg(deg)
-	return { dist: distanceNM, brg: bearing }
+              mlat = pos1.latitude;  //so close just pick one
+              // FIXME need to ensure m-lat 0-90 // dlon in minutes 
+        departure = dlon * cosd( mlat );
+              // FIXME may need to adjust for quadrant
+        bearing = atand( departure / dlon);
+        distance = dlat / cosd( bearing );  // this is in degrees
+        console.log(`D&C dlon:${dlon} dlat:${dlat} mlat:${mlat} dep:${departure} brg:${bearing} dist:${distance}`);
+        distanceNM = distance;   // minutes 
+        //console.log(`DandC dist: ${distanceNM} direction: ${bearing}` );
+        // return distance(nm), brg(deg)
+        return { dist: distanceNM, brg: bearing }
       }
 
       // est where we should have been after this distance
       function CalcEstPosition( pos1, distNM, brg )
       {
         var pos2 = { latitude: 0, longitude: 0 };
-	      // FIXME need to determine quadrant for sign of =/- applying d-
-	      // FIXME need to see if we go around the horn either way
-	dist = distNM / 60;
+              // FIXME need to determine quadrant for sign of =/- applying d-
+              // FIXME need to see if we go around the horn either way
+        dist = distNM / 60;
         dlat = dist * cosd( brg );
-	departure = dist * sind( brg );
-	dlon = departure / cosd( pos1.latitude )  // should be m-lat but close enough
-	pos2.latitude = pos1.latitude + dlat;
-	pos2.longitude = pos1.longitude + dlon;
-	console.log(`CEP p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
-	return( pos2 );
+        departure = dist * sind( brg );
+        dlon = departure / cosd( pos1.latitude )  // should be m-lat but close enough
+        pos2.latitude = pos1.latitude + dlat;
+        pos2.longitude = pos1.longitude + dlon;
+        console.log(`CEP p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
+        return( pos2 );
       }
 
 
@@ -670,38 +727,36 @@ function getTimeStr( time )
 
 function LogEntry( loc )
 {
-	// Time runtime timeof day  HH:MM
-	timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: "2-digit", hour12: false });
+        // Time runtime timeof day  HH:MM
+        timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: "2-digit", hour12: false });
         minEl = deltaT%60;
-	timeEl  = Math.trunc(deltaT/60).toString().padStart(2, " ") +":" + minEl.toString().padStart(2, "0");
-	// Distance MM.mm
-	distEl = deltaD.toString().padStart(5, " " );
-	// Lat/Lon DDD.dddd 
-	lat = PadNumber(loc.latitude, 3, 4);
-	lon = PadNumber(loc.longitude, 3, 4);
-	//console.log( "|" + lat +"|"+ lon +"|" );
-	// hdg / cse  DDD    
-	hdg = PadNumber(heading, 3, 0);
-	cse = PadNumber(course, 3, 0 );
-	//console.log( "hdg:" + hdg +"cse:" +  cse );
-	// dont use `${timeStr}`  as strings get turned back into numbers 
-	const line1 = timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte+"|\n" +
-		      currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError+"|\n";
+        timeEl  = Math.trunc(deltaT/60).toString().padStart(2, " ") +":" + minEl.toString().padStart(2, "0");
+        // Distance MM.mm
+        distEl = deltaD.toString().padStart(5, " " );
+        // Lat/Lon DDD.dddd 
+        lat = PadNumber(loc.latitude, 3, 4);
+        lon = PadNumber(loc.longitude, 3, 4);
+        //console.log( "|" + lat +"|"+ lon +"|" );
+        // hdg / cse  DDD    
+        hdg = PadNumber(heading, 3, 0);
+        cse = PadNumber(course, 3, 0 );
+        //console.log( "hdg:" + hdg +"cse:" +  cse );
+        // dont use `${timeStr}`  as strings get turned back into numbers 
+        const line1 = timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte+"|\n" +
+                      currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError+"|\n";
         
-	// prepend message so most recent at top
-	var logText = document.getElementById('logTextArea');
-	curLog = line1 + logText.value;
-	logText.value = curLog;
+        // prepend message so most recent at top
+        var logText = document.getElementById('logTextArea');
+        curLog = line1 + logText.value;
+        logText.value = curLog;
 
-	// and, log to screen
-	const statusBar1 = currentState+" "+timeStr;
+        // and, log to screen
+        const statusBar1 = currentState+" "+timeStr;
         document.getElementById("z").value = statusBar1;
-	const statusBar2 = "Lat "+lat;
+        const statusBar2 = "Lat "+lat;
         document.getElementById("z1").value = statusBar2;
-	const statusBar3 = "Lon "+lon;
+        const statusBar3 = "Lon "+lon;
         document.getElementById("z2").value = statusBar3;
-
-
 }
 
 function ClearLog()
@@ -789,7 +844,7 @@ function PadNumber( num, pre, places )
   <tr>
   <td><button onclick="DisplaySettings()" class="minorButton2">Settings</button></td>
   <td><button onclick="DisplayLog()"      class="minorButton">Log</button></td>
-  <td><button onclick="Reset()" class="majorButton" id="alResetButton">Reset</button></td>
+  <td><button onclick="Reset()"           class="majorButton" id="ResetButton">Reset</button></td>
   </tr>
   </tbody>
 </table>
@@ -804,7 +859,6 @@ function PadNumber( num, pre, places )
     <td><legend>Check duration (minutes)</legend></td>
   </tr>
   <tr>
-	  <!-- FIXME this works when on a form but we dont want the form as if messes with something else, i forget -->
     <td><input type="range" id="checkTime" name="a" value="5" min="5" max="60" step="5" oninput="OutTChg()"></td>
     <td><output id="x" class="setOut" value="0"></td>
   </tr>
@@ -828,43 +882,6 @@ function PadNumber( num, pre, places )
   </tbody>
 </table>
 </div>
-<div id="Alarm">
-<table border="0">
-  <tbody>
-  <tr>
-    <td><legend>ALARM</legend></td> 
-  </tr>
-  <tr>
-    <td><button onclick="Reset()" class="majorButton" id="alResetButton">Reset</button></td>
-  </tr>
-  <tr>
-    <td><legend>ΔTime   </legend></td>
-    <td><legend>Heading </legend></td>
-    <td><legend>XTE     </legend></td>
-  </tr>
-  <tr>
-    <td><output id="deltaTAlarm"  class="outData"></td>
-    <td><output id="headingAlarm" class="outData"></td>
-    <td><output id="xteAlarm"     class="outData"></td>
-  </tr>
-  <br />
-  <tr>
-    <td><legend>ΔDistance</legend></td>
-    <td><legend>Course   </legend></td>
-    <td><legend>CseE     </legend></td>
-  </tr>
-  <tr>
-    <td><output id="deltaDAlarm" class="outData"></td>
-    <td><output id="courseAlarm" class="outData"></td>
-    <td><output id="cseEAlarm"   class="outData"></td>
-  </tr>
-  <tr>
-    <td><button onclick="DisplayMain()" class="minorButton" id="alDismissButton">Dismiss</button></td>
-    <td><button onclick="DisplayLog()"  class="minorButton" id="alLogButton">Log</button></td>
-  </tr>
-  </tbody>
-</table>
-</div>
 <div id="Log">
 <table border="0">
   <tbody>
@@ -881,16 +898,16 @@ function PadNumber( num, pre, places )
   </tbody>
 </table>
 </div>
-<p> Welcome, this is pretty simple.</p>
+<p>This is pretty simple:</p>
 <ol>
-  <li>Press Stby to capture an initial position.</li>
+  <li>Press <b>Stby</b> to capture an initial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
-  <li>Settings for desired checking interval and off-course limit.</li>
-  <li>press Run to capture the current position. A heading will be calculated and a timer started.</li>
-  <li>When the timer goes off the current position will be updated and the course checked against the heading from earlier.</li>
+  <li>review <b>Settings</b> for desired checking interval and off-course bearing and xte limit.</li>
+  <li>press <b>Run</b> to capture the current position. A heading will be calculated and a timer started.</li>
+  <li>When the timer expires  the current position will be updated and the course checked against the heading from earlier.</li>
   <li>If am alarm condition exists, the screen will flash and the klaxon will sound.</li>
-  <li>Dismiss the alarm will stop the noise BUT the alarm condition still exists and will trigger again next check.</li>
-  <li>can either change settings, go to standby or turn off</li>
+  <li><b>Reset</b> the alarm will stop the noise BUT if the alarm condition still exists it will trigger again next check.</li>
+  <li>You can either change <b>Settings</b>, go to <b>Stby</b> or turn <b>OFF</b></li>
 </ol>
 
 </body></html>
