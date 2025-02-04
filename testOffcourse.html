@@ -6,8 +6,8 @@
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=320, user-scalable=yes, initial-scale=1">
     <style>
-:root { --main-text: #000080; --main-out: #B3B3D9; --main-button: #4CAF50; --minor-button: #CC7A8b;
-	--main-off:  #B3B3D9; --main-run: #90EE90; --main-stby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
+      :root { --main-text: #000080; --main-out: #B3B3D9; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
+              --main-off:  #B3B3D9; --main-run: #90EE90; --main-stby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
       h1 { color: blue; font-size: 24px; }
       .outData { padding: 6px 20px; margin-bottom: 20px; line-height: normal; width: 30%;
 	         color: var(--main-text);
@@ -16,15 +16,25 @@
       .setOut { color: var(--main-text); font-size: 16px; font-weight: bold; }
       .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 8px; }
 
-      /* the real McCoy  don't specify border: none; it kills the click effect */
-      button { padding: 12px 24px; background: var(--main-button); color: white;
+      .noHover { padding: 12px 24px; background: var(--grey-button); color: #8f8d8a;
 	       font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
-	       border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: -2px; transition: outline-offset 200ms ease; }
-      button:hover { outline-offset: 2px; }
+	       border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
+
+      /* the real McCoy  don't specify border: none; it kills the click effect */
+      .majorButton { padding: 12px 24px; background: var(--main-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+                     border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
+      .majorButton:hover { outline-offset: 2px; } 
       .minorButton { padding: 9px 18px; background: var(--minor-button); color: white;
-		     border-radius: 4px; outline: 1px solid var(--minor-button); cursor: pointer; } 
+	             font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+		     border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
+      .minorButton:hover { outline-offset: 1px; } 
 		     /* for settings, its a long word */
-      .minorButton2 { padding: 9px 10px; background: var(--minor-button); border-radius: 4px; outline: 1px solid var(--minor-button); } 
+      .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
+	             font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+	              border-radius: 8px; outline: 1px solid var(--minor-button); } 
+      .minorButton2:hover { outline-offset: 1px; } 
+
       legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px;}
 
       Form { display: none; }
@@ -33,6 +43,7 @@
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
+      var version = "0.04"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       var latOffset = 0.01; lonOffset = 0.01;  // vars to fake movement for testing 0.01 is ~ 6nm
@@ -67,7 +78,8 @@
       function StartApp()
       {
 	// get screen size and think about how big stuff needs to be
-	alert("Offcourse Alarm v 0.02\n"+window.innerWidth+"px wide \n"+window.innerHeight+"px high");
+	alert("Offcourse Alarm v"+version+"\n"+window.innerWidth+" px wide \n"+window.innerHeight+" px high");
+	document.getElementById("versionString").innerHTML ="Off-course Alarm v"+version;
 	if ( !navigator.geolocation ) {
 	  errStr = "Geolocation is not supported by this browser.";
 	  alert( errStr ); // not going to work 
@@ -96,11 +108,14 @@
         DisplayMain();
       }
 
+      // perhaps a disable / enable button function that does the button and changes the class 
+
       function SetupAudio()
       {
-         audio = new Audio("/home/hutan/Downloads/Illustrious.wav");
+         audio = new Audio("Illustrious.wav");
          audio.loop = true;
          audio.volume = 0.2;
+	 console.log("audio src is: " + audio.src );
       }
 
       // called from multiple places, on startup, when log dismissed when alarm dismissed 
@@ -111,8 +126,12 @@
 	if ( currentState == runStates.off ) {
           objectId.main.style.backgroundColor = c.off; // LightTeal
           document.getElementById("MainPage").style.width = "320px"; 
-          document.getElementById("RunButton").style.visibility="hidden";
-          document.getElementById("OffButton").style.visibility="hidden";
+	document.getElementById("RunButton").classList.remove("majorButton");
+	document.getElementById("RunButton").classList.add("noHover");
+          document.getElementById("RunButton").disabled = true;
+	document.getElementById("OffButton").classList.remove("majorButton");
+	document.getElementById("OffButton").classList.add("noHover");
+          document.getElementById("OffButton").disabled = true;
 	  ClearDisplay();
 	}
 	//UpdateDisplay();
@@ -131,14 +150,6 @@
       function ResetData()
       {
         deltaT = deltaD = heading = course = xte = cseError = 0;
-	      /*
-        deltaT = 0;
-	deltaD = 0;
-	heading = 0;
-	course = 0;
-	xte = 0;
-	cseError = 0;
-	*/
       }
 
       // update displayed data, do it all at once rather than piecemeal
@@ -180,6 +191,12 @@
 	y.value = document.getElementById("accVar" ).value;
       }
 
+      function OutXChg()
+      {
+	y2 = document.getElementById("y2");
+	y2.value = document.getElementById("xtVar" ).value;
+      }
+
       function OutTChg()
       {
 	x = document.getElementById("x");
@@ -192,7 +209,7 @@
         // see if anything has been changed
 	if ( document.getElementById("checkTime").value != checkTime ) {
           checkTime = Number( document.getElementById("checkTime").value);
-	  if (( currentState == runState.run ) | ( currentState == runState.alarm )) {
+	  if (( currentState == runStates.run ) | ( currentState == runStates.alarm )) {
             try { 
 	      window.clearInterval( checkTimer);
 	      checkTimerCreate--;
@@ -244,8 +261,12 @@
             //currentLoc.longitude = 0;
 	    UpdateDisplay();
             objectId.main.style.backgroundColor = c.stby; // Beer
-            document.getElementById("RunButton").style.visibility = "visible";
-            document.getElementById("OffButton").style.visibility = "visible";
+	document.getElementById("RunButton").classList.add("majorButton");
+	document.getElementById("RunButton").classList.remove("noHover");
+            document.getElementById("RunButton").disabled = false;
+	document.getElementById("OffButton").classList.add("majorButton");
+	document.getElementById("OffButton").classList.remove("noHover");
+            document.getElementById("OffButton").disabled = false;
             currentState = runStates.standby;
 	    LogEntry( initialLoc );
           }
@@ -268,6 +289,9 @@
       function RunMain()
       {
 	// on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
+	      // also stop the border animation
+	document.getElementById("RunButton").classList.remove("majorButton");
+	document.getElementById("RunButton").classList.add("noHover");
         document.getElementById("RunButton").disabled = true;
 	      // spin the cursor until callback? 
         if (navigator.geolocation) { 
@@ -284,7 +308,8 @@
             console.log(`in RunMain Lat:${currentLoc.latitude} Lon:${currentLoc.longitude} heading:${heading}`);
             document.getElementById("heading").value = heading+"°";
 	    document.getElementById("MainPage").style.backgroundColor = 'lightgreen';
-            document.getElementById("RunButton").style.visibility="hidden";
+		   //dont hide if disabled??
+            //document.getElementById("RunButton").style.visibility="hidden";
             currentState = runStates.run;
 	    LogEntry( currentLoc );
             timeMsec = checkTime*60*1000;
@@ -316,8 +341,12 @@
           // fall through
 	}
         objectId.main.style.backgroundColor = c.off; // LightTeal
-        document.getElementById("RunButton").style.visibility="hidden";
-        document.getElementById("OffButton").style.visibility="hidden";
+	document.getElementById("RunButton").classList.remove("majorButton");
+	document.getElementById("RunButton").classList.add("noHover");
+        document.getElementById("RunButton").disable = true;
+	document.getElementById("OffButton").classList.remove("majorButton");
+	document.getElementById("OffButton").classList.add("noHover");
+        document.getElementById("OffButton").disable = true;
         currentState = runStates.off;
 	LogEntry( currentLoc );
 	// reset all tracking variables so as to not have random effects
@@ -382,6 +411,7 @@
 	alarmTimerCreate--;
 	// make sure we stop on red...
         objectId.alarm.style.backgroundColor = c.alarm; // FireEngineRed
+	alarmBr = 0;
         document.getElementById("alResetButton").style.visibility="hidden";
         document.getElementById("alDismissButton").style.visibility="visible";
         document.getElementById("alLogButton").style.visibility="visible";
@@ -720,14 +750,14 @@ function PadNumber( num, pre, places )
 
 <body bgcolor="#7dfdfe" onload="StartApp()">
   
-<h1>Offcourse Alarm v0.03</h1> 
+<h1 id="versionString">Offcourse Alarm</h1> 
 <div id="MainPage" width=320px >
 <table border="0">
   <tbody>
   <tr>
-    <td><button onclick="RunMain()"     id="RunButton">&nbsp;&nbsp;Run&nbsp;&nbsp;</button></td>
-    <td><button onclick="StandbyMain()" id="StandbyButton">&nbsp;Stby&nbsp;</button></td>
-    <td><button onclick="OffMain()"     id="OffButton">&nbsp;OFF&nbsp;</button></td>
+    <td><button onclick="RunMain()"     class="majorButton" id="RunButton">&nbsp;&nbsp;Run&nbsp;&nbsp;</button></td>
+    <td><button onclick="StandbyMain()" class="majorButton" id="StandbyButton">&nbsp;Stby&nbsp;</button></td>
+    <td><button onclick="OffMain()"     class="majorButton" id="OffButton">&nbsp;OFF&nbsp;</button></td>
   </tr>
   <tr>
     <td><output id="z"  class="statusBar"></td>
@@ -759,6 +789,7 @@ function PadNumber( num, pre, places )
   <tr>
   <td><button onclick="DisplaySettings()" class="minorButton2">Settings</button></td>
   <td><button onclick="DisplayLog()"      class="minorButton">Log</button></td>
+  <td><button onclick="Reset()" class="majorButton" id="alResetButton">Reset</button></td>
   </tr>
   </tbody>
 </table>
@@ -770,7 +801,7 @@ function PadNumber( num, pre, places )
     <td><legend>Settings</legend> </td>
   </tr>
   <tr>
-    <td><legend>Check duration</legend></td>
+    <td><legend>Check duration (minutes)</legend></td>
   </tr>
   <tr>
 	  <!-- FIXME this works when on a form but we dont want the form as if messes with something else, i forget -->
@@ -778,17 +809,18 @@ function PadNumber( num, pre, places )
     <td><output id="x" class="setOut" value="0"></td>
   </tr>
   <tr>
-    <td><legend>(Minutes)</legend></td>
-  </tr>
-  <tr>
-    <td><legend>Off Course Limit</legend></td>
+    <td><legend>Off Course Limit (Degrees)</legend></td>
   </tr>
   <tr>
     <td><input type="range" id="accVar" value="5" min="5" max="60" step="5" oninput="OutCChg()"></td>
     <td><output id="y" class="setOut"></td>
   </tr>
   <tr>
-    <td><legend>(Degrees)</legend></td>
+    <td><legend>Cross track Limit (metres)</legend></td>
+  </tr>
+  <tr>
+    <td><input type="range" id="xtVar" value="500" min="200" max="1000" step="50" oninput="OutXChg()"></td>
+    <td><output id="y2" class="setOut"></td>
   </tr>
   <tr>
     <td><button onclick="UpdateSettings()" class="minorButton">Done</button></td>
@@ -803,10 +835,10 @@ function PadNumber( num, pre, places )
     <td><legend>ALARM</legend></td> 
   </tr>
   <tr>
-    <td><button onclick="Reset()" id="alResetButton">Reset</button></td>
+    <td><button onclick="Reset()" class="majorButton" id="alResetButton">Reset</button></td>
   </tr>
   <tr>
-    <td><legend>ΔT      </legend></td>
+    <td><legend>ΔTime   </legend></td>
     <td><legend>Heading </legend></td>
     <td><legend>XTE     </legend></td>
   </tr>
@@ -817,9 +849,9 @@ function PadNumber( num, pre, places )
   </tr>
   <br />
   <tr>
-    <td><legend>ΔD     </legend></td>
-    <td><legend>Course </legend></td>
-    <td><legend>CseE   </legend></td>
+    <td><legend>ΔDistance</legend></td>
+    <td><legend>Course   </legend></td>
+    <td><legend>CseE     </legend></td>
   </tr>
   <tr>
     <td><output id="deltaDAlarm" class="outData"></td>
@@ -840,7 +872,7 @@ function PadNumber( num, pre, places )
     <td><legend>Log</legend></td>
   </tr>
   <tr>
-    <textarea id="logTextArea" rows="15" cols="40" width="360px"></textarea>
+    <textarea id="logTextArea" rows="15" cols="40" width="340px"></textarea>
   </tr>
   <tr>
    <td><button onclick="DisplayMain()" class="minorButton">Done</button></td>
