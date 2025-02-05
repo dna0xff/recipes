@@ -62,10 +62,10 @@
       var c = {};         // retreive on start-up from css variables
       // make this an object 
       var but = {
-      reset: "ResetButton",
-      run:   "RunButton",
-      off:   "OffButton",
-      stby:  "StbyButton"
+        reset: "ResetButton",
+        run:   "RunButton",
+        off:   "OffButton",
+        stby:  "StbyButton"
       }
       var runStates = {
         off:     "Off  ",
@@ -92,7 +92,7 @@
         alert("Offcourse Alarm v"+version+"\n"+window.innerWidth+" px wide \n"+window.innerHeight+" px high");
         document.getElementById("versionString").innerHTML ="Off-course Alarm v"+version;
         if ( !navigator.geolocation ) {
-          errStr = "Geolocation is not supported by this browser.";
+          errStr = "FATAL | StartApp | Geolocation is not supported by this browser.";
           alert( errStr ); // not going to work 
           // FIXME going to need to disable everything and just display some info
           return;
@@ -119,6 +119,9 @@
         // now the real setup
         SetupAudio();
         DisplayMain();
+
+        // stop spewing my devt messages 
+        if ( !DEMO_MODE ) { console.log = function(){}}
       }
 
 // this function throws an exception when called from timer callback
@@ -146,7 +149,7 @@
 
       function changeScreen( scr ) 
       {
-        console.log( " change screen input is: "+scr );
+        console.log( "INFO  | changeScreen  | input is: "+scr );
         switch( scr ) {
           case screen.main: 
             objectId.set.style.display="none";
@@ -164,38 +167,38 @@
             objectId.main.style.display="none";
             break;
           default:
-            console.log( "oops, default: "+screen.main );
+            console.log( "ERROR | changeScreen | oops, fall through default: "+screen.main );
             break;
-
         }
       }
+
 // when called from the alarm timer the button functions dont work
       function changeState( inState )
       { 
         currentState = inState;
         document.getElementById("z").value = currentState;
-        console.log("chg state: "+inState );
+        console.log("INFO  | changeState | chg state to: "+inState );
         switch( inState ) {
           case runStates.off:
-          console.log("chg state case: runStates.off ::"+inState+":: " );
+          console.log("DEBUG | chg state case: runStates.off ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.off; // LightTeal
             disableButton( but.run );
             disableButton( but.off );
           break;
           case runStates.standby:
-          console.log("chg state case: runStates.standby ::"+inState+":: " );
+          console.log("DEBUG | chg state case: runStates.standby ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.stby; // Beer
             enableButton( but.run );
             enableButton( but.off );
           break;
           case runStates.run:
-          console.log("chg state case: runStates.run ::"+inState+":: " );
+          console.log("DEBUG | chg state case: runStates.run ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.run; // lightgreen
             disableButton( but.run );
             disableButton( but.reset);
           break;
           case runStates.alarm:
-          console.log("chg state case: runStates.alarm ::"+inState+":: " );
+          console.log("DEBUG | chg state case: runStates.alarm ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.alarm; // FireEngineRed
             //disableButton( but.stby );
             //disableButton( but.run );
@@ -203,7 +206,7 @@
             //enableButton( but.reset );
           break;
           default:
-            console.log( "oops, default::"+inState+":: " );
+            console.log( "DEBUG | oops, default::"+inState+":: " );
           break;
         }
       }
@@ -213,7 +216,7 @@
          audio = new Audio("Illustrious.wav");
          audio.loop = true;
          audio.volume = 0.2;
-         console.log("audio src is: " + audio.src );
+         console.log("DEBUG | setupAudio | audio src is: " + audio.src );
       }
 
       // called from multiple places, on startup, when log dismissed when alarm dismissed 
@@ -232,24 +235,31 @@
       // clear all run values 
       function ResetData()
       {
+        console.log("DEBUG | ResetData |" );
         deltaT = deltaD = heading = course = xte = cseError = 0;
+        if( DEMO_MODE ) {
+          latOffset = 0.01; lonOffset = 0.01;
+          loopCount = 0;
+        }
       }
 
       // update displayed data, do it all at once rather than piecemeal
       function UpdateDisplay()
       {
+        console.log("DEBUG | UpdateDisplay |" );
         min = deltaT%60;
         hrAndMin  = Math.trunc(deltaT/60).toString().padStart(2, "0") +":" + min.toString().padStart(2, "0");
         document.getElementById("deltaT").value = hrAndMin;
         document.getElementById("heading").value = heading+"°";
-        document.getElementById("deltaD").value = deltaD+"nm";
+        document.getElementById("deltaD").value = deltaD.toPrecision(3)+"nm";
         document.getElementById("course").value = course+"°";
-        document.getElementById("xteMain").value = xte+"m";
+        document.getElementById("xteMain").value = xte+" m";
         document.getElementById("cseEMain").value = cseError+"°";
       }
 
       function ClearDisplay()
       {
+        console.log("DEBUG | ClearDisplay |" );
         hrAndMin  = " ";
         document.getElementById("deltaT").value = " ";
         document.getElementById("heading").value = " ";
@@ -306,6 +316,7 @@
           acceptableVariation = Number( document.getElementById("accVar").value);
         if ( document.getElementById("xtVar").value != xteVariation )
           xteVariation = Number( document.getElementById("xtVar").value);
+        console.log("DEBUG | UpdateSettings | checkTimer: accVar: xteVar: " );
         DisplayMain();
       }
       
@@ -324,17 +335,21 @@
           // stop the clock!
           window.clearInterval( checkTimer);
           checkTimerCreate--;
-          console.log("StandbyMain checkTimerCreate: "+checkTimerCreate );
+          console.log("INFO  | StbyMain | checkTimerCreate: "+checkTimerCreate );
+        }
+        if ( currentState == runStates.standby ) {
+          console.log("INFO  | StbyMain | state: "+currentState+" reseting data" );
+          ResetData();
         }
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
-            console.log(`in StandbyMainCallback Latitude: ${position.coords.latitude}, Longitude: ${position.coords.longitude}`);
+            console.log(`INFO  | StbyMain | initial lat: ${position.coords.latitude.toFixed(4)} lon: ${position.coords.longitude.toFixed(4)}`);
             initialLoc.latitude = position.coords.latitude;
             initialLoc.longitude = position.coords.longitude;
             // not sure if we should zero these here
-            currentLoc.latitude = 0;
-            currentLoc.longitude = 0;
+            currentLoc.latitude = initialLoc.latitude;
+            currentLoc.longitude = initialLoc.longitude;
             UpdateDisplay();
             changeState( runStates.standby );
             LogEntry( initialLoc );
@@ -347,7 +362,7 @@
           }
         } else {
           errStr = "Geolocation is not supported by this browser.";
-          console.log( errStr );
+          console.log( "ERROR | StbyMain | "+errStr );
           document.getElementById("z").value = 'ERROR(' + errStr + '): ' + err.message;
           // should bomb out here as not going to work at all
         }
@@ -371,7 +386,7 @@
             dAndc = DandCPlane( initialLoc, currentLoc);
             ResetData();
             heading = Math.round(dAndc.brg);
-            console.log(`in RunMain Lat:${currentLoc.latitude} Lon:${currentLoc.longitude} heading:${heading}`);
+            console.log(`INFO  | RunMain | current Lat:${currentLoc.latitude} Lon:${currentLoc.longitude} heading:${heading}`);
             document.getElementById("heading").value = heading+"°";
             changeState( runStates.run );
             LogEntry( currentLoc );
@@ -384,12 +399,12 @@
             }
             else {
               // timer already running, it's a logic error
-              console.log("timer already running when Callback in RunMain" );
+              console.log("ERROR | RunMain | timer already running when Callback in RunMain" );
             }
-            if ( checkTimerCreate > 1 ) console.log("ERROR: RunMain Multiple check timers running");
+            if ( checkTimerCreate > 1 ) console.log("ERROR | RunMain | Multiple check timers running");
           });
         } else {
-        console.log("Geolocation is not supported by this browser.");
+        console.log("ERROR | RunMain | Geolocation is not supported by this browser.");
         }
       } 
 
@@ -408,6 +423,7 @@
         LogEntry( currentLoc );
         // reset all tracking variables so as to not have random effects
         ResetData();
+        LogEntry( currentLoc );
         UpdateDisplay();
         // halt timer if set
           try { window.clearInterval( checkTimer )}
@@ -422,7 +438,7 @@
           audio.play();
           audioPlaying = true;
         }
-        console.log("disp alarm but.reset is :"+but.reset+":: " );
+        console.log("ALARM | dispAlarm | alarm but.reset is :"+but.reset+":: " );
         enableButton( but.reset );
         // these throw an exception
             //disableButton( but.stby );
@@ -441,7 +457,7 @@
           }
         }
         catch(err) {  
-          colsole.log (" error creating alarm timer " );
+          colsole.log ("ERROR | dispAlarm | error creating alarm timer " );
         }
       }
 
@@ -463,16 +479,23 @@
           audio.pause();
           audioPlaying = false;
         }
+        else { 
+            console.log("ERROR | Reset  | no audio playing to pause ???" );
+        }
         // stop the screen flashing 
         try {
           if ( flashTimerCreated == true ) {
             window.clearInterval( flashTimer );
             flashTimerCreate = false;
           }
+          else { 
+            console.log("ERROR | Reset  | no flash timer to clear ???" );
+          }
         }
         catch ( err ){
                 // wtf? should have been there
                 flashTimerCreated = false;
+                console.log("ERROR  | Reset  | exception clearing flash timer" );
         }
         alarmBg = true;
         // disable the reset button and enable the rest 
@@ -526,23 +549,24 @@
                   latOffset += 0.005;  
                   lonOffset -= 0.010;  
                 }
-                console.log(`DoIt loop: ${loopCount} LatOffset: ${latOffset}, LonOffset: ${lonOffset}`);
+                console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} LatOffset: ${latOffset.toPrecision(4)} LonOffset: ${lonOffset.toPrecision(4)}`);
             }            
-            console.log(`DoIt cur posn Lat: ${currentLoc.latitude}, Lon: ${currentLoc.longitude}`);
-            // calc deltaD and course
+            console.log(`INFO  | DoIt   | cur posn Lat: ${currentLoc.latitude.toFixed(4)} Lon: ${currentLoc.longitude.toFixed(4)}`);
+            // calc deltaD and course from start point
+            // corse is not current heading, we don't calc that (yet)
             dAndC = DandCPlane( initialLoc, currentLoc );
             deltaD = Math.trunc(dAndC.dist*100)/100;
             deltaT += checkTime; // this could drift if user plays with check time
             course = Math.round(dAndC.brg);
-            console.log(`DoIt course: ${course} deltaT: ${deltaT} deltaD: ${deltaD}`);
+            console.log(`INFO  | DoIt   | course: ${course} deltaT: ${deltaT} deltaD: ${deltaD}`);
             // calc expected posn, use heading as set when changed to run mode
             estLoc = CalcEstPosition( initialLoc, deltaD, heading );
-            console.log(`DoIt est posn Lat: ${estLoc.latitude}, Lon: ${estLoc.longitude}`);
+            console.log(`INFO  | DoIt   | est posn Lat: ${estLoc.latitude.toFixed(4)} Lon: ${estLoc.longitude.toFixed(4)}`);
             // calc XTE and Cse Error
             dAndC2 = DandCPlane( estLoc, currentLoc );
-            xte = Math.round(dAndC2.dist); // distance from expected location
+            xte = Math.round(dAndC2.dist*1800); // distance from expected location
             cseError = Math.abs( heading - course );   
-            console.log(`DoIt xte: ${xte}, cseError: ${cseError}`);
+            console.log(`INFO  | DoIt   | xte: ${xte} cseError: ${cseError}`);
             UpdateDisplay();
             if( cseError > acceptableVariation ) { // are we off course?
               DisplayAlarm();
@@ -558,40 +582,40 @@
             // reset timer -- no need, its a recurring interval timer
           });
         } else {
-        console.log("Geolocation is not supported by this browser.");
+        console.log("ERROR | DoIt    | Geolocation is not supported by this browser.");
         }
       }
 
 
+      // shrt distances, use simple trig after converting to Minutes of arc
+      // should apply mid lattitude correction for dLon
       function DandCPlane( pos1, pos2 )
       {
-        console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
-        dlon = Math.abs( pos1.longitude - pos2.longitude) * 60;
-        dlat = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-        distanceNM = Math.sqrt( dlat*dlat + dlon*dlon ); 
-        bearing = Math.acos(dlat/distanceNM)/dtr;
-        bearing2 = Math.asin(dlon/distanceNM)/dtr;
-        console.log(`D&C dlon:${dlon} dlat:${dlat} brg:${bearing} brg2:${bearing2} dist:${distanceNM}`);
+        console.log(`INFO  | D&C    | p1 lat:${pos1.latitude.toFixed(4)} lon:${pos1.longitude.toFixed(4)} p2 lat:${pos2.latitude.toFixed(4)} lon:${pos2.longitude.toFixed(4)}`);
+        dlonMin = Math.abs( pos1.longitude - pos2.longitude) * 60;
+        dlatMin = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        distanceNM = Math.sqrt( dlatMin*dlatMin + dlonMin*dlonMin ); 
+        bearing = Math.acos(dlatMin/distanceNM)/dtr;
+        bearing2 = Math.asin(dlonMin/distanceNM)/dtr;
+        console.log(`INFO  | D&C    | dlon:${dlonMin.toFixed(2)} dlat:${dlatMin.toFixed(2)} brg:${bearing.toFixed(0)} brg2:${bearing2.toFixed(0)} dist:${distanceNM.toFixed(1)}`);
+        // adjust bearing for quadrant
+        bearing = adjustForQuadrant( pos1, pos2, bearing);
         return { dist: distanceNM, brg: bearing }
       }
 
-
+/*
       // used for current&original AND current&estimated
+      // as the distances involved are quite short just use plane sailing calculations
       function DistAndCourse( pos1, pos2 )
       {
         // FIXME need to know if we are sailing away from equ / prime | anti meridian or towards
         // FIXME need to see if we go around the horn either way
+        // truncate the bloody lat&lon
         console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
-        dlon = Math.abs( pos1.longitude - pos2.longitude) * 60;
-        dlat = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-//        if ( pos1.latitude > pos2.latitude ) {
-          //mlat = pos1.latitude + ( dlat / 2 );
-        //} else {
-          //mlat = pos2.latitude + ( dlat / 2 );
-        //}
-              mlat = pos1.latitude;  //so close just pick one
+        dlonMin = Math.abs( pos1.longitude - pos2.longitude) * 60;
+        dlatMin = Math.abs( pos1.latitude - pos2.latitude ) * 60;
               // FIXME need to ensure m-lat 0-90 // dlon in minutes 
-        departure = dlon * cosd( mlat );
+        departure = dlonMin * cosd( dlat );
               // FIXME may need to adjust for quadrant
         bearing = atand( departure / dlon);
         distance = dlat / cosd( bearing );  // this is in degrees
@@ -602,19 +626,22 @@
         return { dist: distanceNM, brg: bearing }
       }
 
+*/
       // est where we should have been after this distance
       function CalcEstPosition( pos1, distNM, brg )
       {
         var pos2 = { latitude: 0, longitude: 0 };
-              // FIXME need to determine quadrant for sign of =/- applying d-
+              // FIXME need to determine quadrant for sign of +/- applying d-
               // FIXME need to see if we go around the horn either way
         dist = distNM / 60;
         dlat = dist * cosd( brg );
         departure = dist * sind( brg );
         dlon = departure / cosd( pos1.latitude )  // should be m-lat but close enough
+        // FIXME need to get the sign correct here based on the quadrant
         pos2.latitude = pos1.latitude + dlat;
         pos2.longitude = pos1.longitude + dlon;
-        console.log(`CEP p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
+        console.log(`INFO  | CEP    | p1 lat:${pos1.latitude.toFixed(4)} lon:${pos1.longitude.toFixed(4)} distNM:${distNM} brg:${brg}`);
+        console.log(`INFO  | CEP    | p2 lat:${pos2.latitude.toFixed(4)} lon:${pos2.longitude.toFixed(4)}`);
         return( pos2 );
       }
 
@@ -639,8 +666,25 @@ function atand(x)
 return Math.atan(x)/dtr;
 }
 
+function adjustForQuadrant( pos1, pos2, brg )
+{
+
+  // FIXME this is only North&East
+  if ( pos1.latitude > pos2.latitude ) { gNorth = false; }
+  else { gNorth = true; }
+  if ( pos1.longitude > pos2.longitude ) { gEast = false; }
+  else { gEast = true; }
+
+  // this holds for all quadrants
+  if ( gNorth ) { if ( gEast ) { ; }         // NE do nothing
+                  else { brg = 360 - brg; }  // NW 360-θ
+  } else if ( gEast ) { brg = 180 - brg; }   // SE 180-θ
+         else { brg = 180 + brg }            // SW 180+θ
+  return brg;
+}
+
 // find quadrant
-function quadrant_is( brg )
+function quadrantIs( brg )
 {
   var quadrant;
        if (( brg <   0 ) & ( brg >  90 )) quadrant = 1;
@@ -652,7 +696,7 @@ function quadrant_is( brg )
 }
 
 // Add or Subtract deltas
-function add_or_subtract( pos1, pos2 )
+function addOrSubtract( pos1, pos2 )
 {
   var addLat, addLon;
   if (( pos1.latitude > 0 ) & ( pos2.latitude > 0 )) {
@@ -688,6 +732,7 @@ function add_or_subtract( pos1, pos2 )
   }
   return{ alat: addLat, alon: addLon };
 }
+
 // Normalize latitude
 function norm_90_deg(x)
 {
@@ -731,8 +776,8 @@ function LogEntry( loc )
         timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: "2-digit", hour12: false });
         minEl = deltaT%60;
         timeEl  = Math.trunc(deltaT/60).toString().padStart(2, " ") +":" + minEl.toString().padStart(2, "0");
-        // Distance MM.mm
-        distEl = deltaD.toString().padStart(5, " " );
+        // Distance MM.mm or MMM.m
+        distEl = deltaD.toPrecision().toString().padStart(5, " " );
         // Lat/Lon DDD.dddd 
         lat = PadNumber(loc.latitude, 3, 4);
         lon = PadNumber(loc.longitude, 3, 4);
@@ -742,8 +787,9 @@ function LogEntry( loc )
         cse = PadNumber(course, 3, 0 );
         //console.log( "hdg:" + hdg +"cse:" +  cse );
         // dont use `${timeStr}`  as strings get turned back into numbers 
-        const line1 = timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte+"|\n" +
-                      currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError+"|\n";
+        const line1 = "|"+timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte+"|\n" +
+                      "|"+currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError+"|\n" +
+                      "|-----|------------|-------|--------|-----|\n";
         
         // prepend message so most recent at top
         var logText = document.getElementById('logTextArea');
