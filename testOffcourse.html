@@ -549,6 +549,7 @@
                   latOffset += 0.005;  
                   lonOffset -= 0.010;  
                 }
+                console.log(`--------------------------------------------------------------------------------------------------------------------------`);
                 console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} LatOffset: ${latOffset.toPrecision(4)} LonOffset: ${lonOffset.toPrecision(4)}`);
             }            
             console.log(`INFO  | DoIt   | cur posn Lat: ${currentLoc.latitude.toFixed(4)} Lon: ${currentLoc.longitude.toFixed(4)}`);
@@ -588,19 +589,26 @@
 
 
       // shrt distances, use simple trig after converting to Minutes of arc
-      // should apply mid lattitude correction for dLon
       function DandCPlane( pos1, pos2 )
       {
-        console.log(`INFO  | D&C    | p1 lat:${pos1.latitude.toFixed(4)} lon:${pos1.longitude.toFixed(4)} p2 lat:${pos2.latitude.toFixed(4)} lon:${pos2.longitude.toFixed(4)}`);
-        dlonMin = Math.abs( pos1.longitude - pos2.longitude) * 60;
-        dlatMin = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-        distanceNM = Math.sqrt( dlatMin*dlatMin + dlonMin*dlonMin ); 
-        bearing = Math.acos(dlatMin/distanceNM)/dtr;
-        bearing2 = Math.asin(dlonMin/distanceNM)/dtr;
-        console.log(`INFO  | D&C    | dlon:${dlonMin.toFixed(2)} dlat:${dlatMin.toFixed(2)} brg:${bearing.toFixed(0)} brg2:${bearing2.toFixed(0)} dist:${distanceNM.toFixed(1)}`);
+        console.log(`INFO  | D&C    | p1 lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} p2 lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)}`);
+        adj = cosd( pos1.latitude ); // parallel sailing adjust from lattitude when converting form arc Minutes to Nm
+        // this will fail if crossing the prime or antimeridian
+        dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
+        dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        distanceNm = Math.sqrt( dlatNm*dlatNm + dlonNm*dlonNm ); 
+        bearing = Math.acos(dlatNm/distanceNm)/dtr;
+        bearing2 = Math.asin(dlonNm/distanceNm)/dtr;
+        // OR get bearing forst the distance
+        bearing3 = atand( dlatNm / dlonNm );
+        dist2 = dlonNm / sind( bearing3 );
+        dist3 = dlatNm / cosd( bearing3 );
         // adjust bearing for quadrant
         bearing = adjustForQuadrant( pos1, pos2, bearing);
-        return { dist: distanceNM, brg: bearing }
+        console.log(`INFO  | D&C    | dlon: ${dlonNm.toFixed(4)} dlat: ${dlatNm.toFixed(4)} dist: ${distanceNm.toFixed(2)}
+        brg: ${bearing.toFixed(0)} brg2: ${bearing2.toFixed(0)} brg3: ${bearing2.toFixed(0)} adj: ${adj.toFixed(4)}
+        dist2: ${dist2.toFixed(2)} dist3: ${dist3.toFixed(2)}`);
+        return { dist: distanceNm, brg: bearing }
       }
 
 /*
@@ -620,28 +628,28 @@
         bearing = atand( departure / dlon);
         distance = dlat / cosd( bearing );  // this is in degrees
         console.log(`D&C dlon:${dlon} dlat:${dlat} mlat:${mlat} dep:${departure} brg:${bearing} dist:${distance}`);
-        distanceNM = distance;   // minutes 
-        //console.log(`DandC dist: ${distanceNM} direction: ${bearing}` );
+        distanceNm = distance;   // minutes 
+        //console.log(`DandC dist: ${distanceNm} direction: ${bearing}` );
         // return distance(nm), brg(deg)
-        return { dist: distanceNM, brg: bearing }
+        return { dist: distanceNm, brg: bearing }
       }
 
 */
       // est where we should have been after this distance
-      function CalcEstPosition( pos1, distNM, brg )
+      function CalcEstPosition( pos1, distNm, brg )
       {
         var pos2 = { latitude: 0, longitude: 0 };
               // FIXME need to determine quadrant for sign of +/- applying d-
               // FIXME need to see if we go around the horn either way
-        dist = distNM / 60;
+        dist = distNm / 60;
         dlat = dist * cosd( brg );
         departure = dist * sind( brg );
         dlon = departure / cosd( pos1.latitude )  // should be m-lat but close enough
         // FIXME need to get the sign correct here based on the quadrant
         pos2.latitude = pos1.latitude + dlat;
         pos2.longitude = pos1.longitude + dlon;
-        console.log(`INFO  | CEP    | p1 lat:${pos1.latitude.toFixed(4)} lon:${pos1.longitude.toFixed(4)} distNM:${distNM} brg:${brg}`);
-        console.log(`INFO  | CEP    | p2 lat:${pos2.latitude.toFixed(4)} lon:${pos2.longitude.toFixed(4)}`);
+        console.log(`INFO  | CEP    | p1 lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} distNm: ${distNm} brg: ${brg}`);
+        console.log(`INFO  | CEP    | p2 lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)}`);
         return( pos2 );
       }
 
