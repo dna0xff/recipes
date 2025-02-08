@@ -1,7 +1,7 @@
 ## Pretty self explanitory
 
 
-### Boating off course alarm  NOT ready for use yet still debugging
+### Boating off course alarm  NOT ready for use yet, still debugging
 Single file application that runs in your browser. 
 Ideally you should be able to run from the local file system, however I suspect that there may be an issue with browser security alowing access to the location services. 
 
@@ -26,15 +26,17 @@ Demo mode asumes you are stationary, it gets gps coordinates then adds a demo of
 That's the 64M$ question. you can't run from the repo, but you can dowload the file. 
 #### local filesystem
 On a computer you can point your browser at the file and it should load. Make sure you download the audio file as well to the same location. 
-file:///home/<xxxx>/Downloads/testOffcourse.html
+`file:///home/<xxxx>/Downloads/testOffcourse.html`
+This does work on my computer an android 9 phone but not android 11. YMMV. SImplest way to run if it works.
+
 #### webserver
 I'm launching the simple python webserver to serve it up as localhost. This seems to be OK for the case where running from the local filesystem does not work.
 `<xxxx>@fedora:~/Downloads$ python3 -m http.server 9000`
 then http://localhost:9000/testOffcourse.html
 
+You can serve this to yourself on aphone if you install termux, then python in termux and copy the downloded file into the termux user space. 
+
 ##### rawgit.com
 rawgit alows you to runfiles in a git repo, This is how I am testing on a phone. 
-https://raw.githack.com/dna0xff/recipes/master/testOffcourse.html
-
-or perhaps for production related use, this does rely on content being pushed to the cdn bit if so you get a local copy rather than back to git centeral. 
-https://cdn.raw.githack.com/dna0xff/recipes/master/testOffcourse.html
+This does rely on content being pushed to the cdn bit if so you get a local copy rather than back to git centeral. 
+https://rawcdm.githack.com/dna0xff/recipes/master/testOffcourse.html

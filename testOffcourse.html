@@ -50,11 +50,13 @@
       // for 5 min check
       var initDir = 30; initSpeed = 5.2; initDur = 50;
       var subsDir = 34; subsSpeed = 5.2;
-      var offsets = { init: { loopCount: 0, latOffset: 0, lonOffset: 0, latOffAcc: 0, lonOffAcc: 0 },
-                      subs: { loopCount: 0, latOffset: 0, lonOffset: 0, latOffAcc: 0, lonOffAcc: 0 } };
+      var offsets = { accu: { latOffAcc: 0, lonOffAcc: 0, loopCount: 0 },
+                      init: { latOffset: 0, lonOffset: 0 },
+                      subs: { latOffset: 0, lonOffset: 0 } };
+      var testSet = offsets.init; 
 
-      var latOffset = -0.0075; lonOffset = -0.0075;  // vars to fake movement for testing 0.01 is ~ 0.6nm
-      var latOffAcc = latOffset; lonOffAcc = lonOffset;  // vars to maintain the Accumulated offset
+    //  var latOffset = -0.0075; lonOffset = -0.0075;  // vars to fake movement for testing 0.01 is ~ 0.6nm
+    //  var latOffAcc = latOffset; lonOffAcc = lonOffset;  // vars to maintain the Accumulated offset
       var genAlarm = true;  // after a few iterations start to wander off track
       var loopCount = 0;
 
@@ -88,12 +90,14 @@
         log:  "log",
         settings: "settings"
       }
+      /*
       const addSign = { 
           N : { 1 : { latS : true, lonS : true }, 2 : { latS : false, lonS : true }, 3: { latS: false, lonS: false }, 4: { latS: true, lonS: false } },
           S : { 2 : { latS : true, lonS : true }, 3 : { latS : false, lonS : true }, 4: { latS: false, lonS: false }, 1: { latS: true, lonS: false } },
           E : { 3 : { latS : true, lonS : true }, 4 : { latS : false, lonS : true }, 1: { latS: false, lonS: false }, 2: { latS: true, lonS: false } },
           W : { 4 : { latS : true, lonS : true }, 1 : { latS : false, lonS : true }, 2: { latS: false, lonS: false }, 3: { latS: true, lonS: false } }
       }
+      */
       var currentState = runStates.off;
       var checkTimerCreate = 0;
       // Alarm is a oneshot, once dismissed return to Run but may trigger again on next check
@@ -115,10 +119,13 @@
           pos2 = CalcEstPosition( pos1, drPerPeriod2, subsDir );
           offsets.subs.latOffset = pos2.latitude;
           offsets.subs.lonOffset = pos2.longitude;
-          offsets.init.loopCount = initDur / checkTime;
+          offsets.accu.loopCount = initDur / checkTime;
+          testSet = offsets.init;
+          offsets.accu.latOffAcc += testSet.latOffset;
+          offsets.accu.lonOffAcc += testSet.lonOffset;
           console.log("DEMO  | calcOff | offsets [ " 
           + offsets.init.latOffset.toFixed(4) + ", "
-          + offsets.init.lonOffset.toFixed(4) + " ], [ "
+          + testSet.lonOffset.toFixed(4) + " ], [ "
           + offsets.subs.latOffset.toFixed(4) + ", "
           + offsets.subs.lonOffset.toFixed(4) + " ]" );
         }
@@ -389,9 +396,9 @@
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
-            console.log(`INFO  | StbyMain | initial lat: ${position.coords.latitude.toFixed(4)} lon: ${position.coords.longitude.toFixed(4)}`);
             initialLoc.latitude = position.coords.latitude;
             initialLoc.longitude = position.coords.longitude;
+            console.log(`INFO  | StbyMain | ip [ lat ${initialLoc.latitude.toFixed(4)} lon ${initialLoc.longitude.toFixed(4)} ]`);
             // not sure if we should zero these here
             currentLoc.latitude = initialLoc.latitude;
             currentLoc.longitude = initialLoc.longitude;
@@ -424,16 +431,27 @@
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if ( DEMO_MODE ) {
-              currentLoc.latitude += latOffAcc;
+              /*currentLoc.latitude += latOffAcc;
               currentLoc.longitude += lonOffAcc;
               latOffAcc += latOffset;
               lonOffAcc += lonOffset;
+              */
+              // change the coords, then increment the offset for next time
+              currentLoc.latitude += offsets.accu.latOffAcc;
+              currentLoc.longitude += offsets.accu.lonOffAcc;
+              offsets.accu.latOffAcc += testSet.latOffset;
+              offsets.accu.lonOffAcc += testSet.lonOffset;
             }
+            console.log("DEBUG | RunMain | cp [ lat " + currentLoc.latitude.toFixed(4) +
+              " lon " + currentLoc.longitude.toFixed(4) + " ] offset: " + testSet.latOffset.toFixed(4) +
+              " accum: " + offsets.accu.latOffAcc.toFixed(4) );
             dAndc = DandCPlane( initialLoc, currentLoc);
             // this clears the latOffAcc etc. and messes up the demo
             //ResetData();
             heading = Math.round(dAndc.brg);
-            console.log(`INFO  | RunMain | current Lat:${currentLoc.latitude} Lon:${currentLoc.longitude} heading:${heading}`);
+            dist = Math.trunc(dAndc.dist*100)/100;
+            deltaD += dist; 
+            console.log(`INFO  | RunMain | cp [ lat${currentLoc.latitude.toFixed(4)} lon:${currentLoc.longitude.toFixed(4)} ] heading:${heading} deltaD:${deltaD} dist:${dist}`);
             document.getElementById("heading").value = heading+"°";
             changeState( runStates.run );
             LogEntry( currentLoc );
@@ -581,41 +599,52 @@
       {
         // get current location
         if (navigator.geolocation) {  
-          navigator.geolocation.getCurrentPosition(function(position) {
-            // ripple
-            previousLoc.latitude = currentLoc.latitude;
-            previousLoc.longitude = currentLoc.longitude;
+          // ripple
+           previousLoc.latitude = currentLoc.latitude;
+           previousLoc.longitude = currentLoc.longitude;
+           navigator.geolocation.getCurrentPosition(function(position) {
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if( DEMO_MODE ){
-                currentLoc.latitude  += latOffAcc;
-                currentLoc.longitude += lonOffAcc;
-                loopCount++;
-                if (loopCount > 12 ) {
-                  // turn which way and how hard?
-                  // for 20 minlatOffset = 0.04;  
-                  // for 20 minlonOffset = 0.02;  
-                  // for 5 min test
-                  latOffset = -0.01;  
-                  lonOffset = -0.005;  
-                }
-                console.log(`-----------------------------------------------------------------------------`);
-                console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${latOffAcc.toPrecision(4)}:${lonOffAcc.toPrecision(4)}][${latOffset}:${lonOffset}]`);
-                latOffAcc += latOffset;
-                lonOffAcc += lonOffset;
+              /*currentLoc.latitude  += latOffAcc;
+              currentLoc.longitude += lonOffAcc;
+              */
+              console.log("pp  before adjust lat: " + previousLoc.latitude.toFixed(4) + " cp lat: " + currentLoc.latitude.toFixed(4) +" offset: " + testSet.latOffset + " accum: " + offsets.accu.latOffAcc );
+              currentLoc.latitude  += offsets.accu.latOffAcc;
+              currentLoc.longitude += offsets.accu.lonOffAcc;
+              console.log("cp after offset adjust [ lat " + currentLoc.latitude.toFixed(4) + " lon " + currentLoc.longitude.toFixed(4) + "] " );
+              loopCount++;
+              if (loopCount > 12 ) {
+                // turn which way and how hard?
+                // for 20 minlatOffset = 0.04;  
+                // for 20 minlonOffset = 0.02;  
+                // for 5 min test
+                latOffset = -0.01;  
+                lonOffset = -0.005;  
+                testSet = offsets.subs;
+              }
+              console.log(`-----------------------------------------------------------------------------`);
+              //console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${latOffAcc.toPrecision(4)}:${lonOffAcc.toPrecision(4)}][${latOffset}:${lonOffset}]`);
+              console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}][${offsets.init.latOffset}:${offsets.init.lonOffset}]`);
+              //latOffAcc += latOffset;
+              //lonOffAcc += lonOffset;
+              offsets.accu.latOffAcc += testSet.latOffset;
+              offsets.accu.lonOffAcc += testSet.lonOffset;
+              console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}][${offsets.init.latOffset}:${offsets.init.lonOffset}]`);
             }            
             console.log(`INFO  | DoIt   | cp [ lat: ${currentLoc.latitude.toFixed(4)} lon: ${currentLoc.longitude.toFixed(4)} ]`);
-            // calc deltaD and course from start point
-            // corse is not current heading, we don't calc that (yet)
+            // calc distance and course from previous position point
             dAndC = DandCPlane( previousLoc, currentLoc );
             dist = Math.trunc(dAndC.dist*100)/100;
             deltaD += dist; 
             deltaT += checkTime; // this could drift if user plays with check time
             course = Math.round(dAndC.brg);
             console.log(`INFO  | DoIt   | course: ${course} deltaT: ${deltaT} deltaD: ${deltaD.toPrecision(3)} dr: ${dist}`);
+
             // calc expected posn, use heading as set when changed to run mode and previous loc
-            estLoc = CalcEstPosition( previousLoc, dist, heading );
+            estLoc = CalcEstPosition( initialLoc, deltaD, heading );
             console.log(`INFO  | DoIt   | ep [ lat: ${estLoc.latitude.toFixed(4)} lon: ${estLoc.longitude.toFixed(4)} ]`);
+
             // calc XTE and Cse Error
             dAndC2 = DandCPlane( estLoc, currentLoc );
             xte = Math.round(dAndC2.dist*1800); // distance from expected location
@@ -648,10 +677,10 @@
         console.log(`INFO  | D&C    | p1 [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] p2 [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ]`);
         adj = cosd( pos1.latitude ); // parallel sailing adjust from lattitude when converting form arc Minutes to Nm
         // this will fail if crossing the prime or antimeridian
-        //dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
-        //dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-        dlonNm = ( pos1.longitude - pos2.longitude) * 60 * adj; 
-        dlatNm = ( pos1.latitude - pos2.latitude ) * 60;
+        dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
+        dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        //dlonNm = ( pos1.longitude - pos2.longitude) * 60 * adj; 
+        //dlatNm = ( pos1.latitude - pos2.latitude ) * 60;
         distanceNm = Math.sqrt( dlatNm*dlatNm + dlonNm*dlonNm ); 
         bearing = Math.acos(dlatNm/distanceNm)/dtr;
         bearing2 = Math.asin(dlonNm/distanceNm)/dtr;
@@ -992,6 +1021,7 @@ function PadNumber( num, pre, places )
 </table>
 </div>
 <p>This is pretty simple:</p>
+<button onclick="DemoPref()"    class="minorButton">Demo</button></td>
 <ol>
   <li>Press <b>Stby</b> to capture an initial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
