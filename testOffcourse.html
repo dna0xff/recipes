@@ -43,21 +43,31 @@
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.04"
+      var version = "0.06"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
-      var latOffset = 0.01; lonOffset = 0.01;  // vars to fake movement for testing 0.01 is ~ 6nm
+      // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
+      // for 5 min check
+      var initDir = 30; initSpeed = 5.2; initDur = 50;
+      var subsDir = 34; subsSpeed = 5.2;
+      var offsets = { init: { loopCount: 0, latOffset: 0, lonOffset: 0, latOffAcc: 0, lonOffAcc: 0 },
+                      subs: { loopCount: 0, latOffset: 0, lonOffset: 0, latOffAcc: 0, lonOffAcc: 0 } };
+
+      var latOffset = -0.0075; lonOffset = -0.0075;  // vars to fake movement for testing 0.01 is ~ 0.6nm
+      var latOffAcc = latOffset; lonOffAcc = lonOffset;  // vars to maintain the Accumulated offset
       var genAlarm = true;  // after a few iterations start to wander off track
       var loopCount = 0;
 
       var dtr = Math.PI/180;
       // set these to your desired default values
-      var checkTime=20, acceptableVariation=20; xteVariation=200;
-      var initialLoc = { latitude: 0, longitude: 0 };
-      var currentLoc = { latitude: 0, longitude: 0 };
-      var estLoc     = { latitude: 0, longitude: 0 };
+      var checkTime=5, accVar=5; xteVar=400;
+      var initialLoc  = { latitude: 0, longitude: 0 };
+      var currentLoc  = { latitude: 0, longitude: 0 };
+      var previousLoc = { latitude: 0, longitude: 0 };
+      var estLoc      = { latitude: 0, longitude: 0 };
       var deltaT=0, deltaD=0, heading=0, course=0;
       var xte=0, cseError=0;
+
       var objectId = {};  // retrieve on start-up and reuse instead of looking up again and again
       var c = {};         // retreive on start-up from css variables
       // make this an object 
@@ -78,12 +88,40 @@
         log:  "log",
         settings: "settings"
       }
+      const addSign = { 
+          N : { 1 : { latS : true, lonS : true }, 2 : { latS : false, lonS : true }, 3: { latS: false, lonS: false }, 4: { latS: true, lonS: false } },
+          S : { 2 : { latS : true, lonS : true }, 3 : { latS : false, lonS : true }, 4: { latS: false, lonS: false }, 1: { latS: true, lonS: false } },
+          E : { 3 : { latS : true, lonS : true }, 4 : { latS : false, lonS : true }, 1: { latS: false, lonS: false }, 2: { latS: true, lonS: false } },
+          W : { 4 : { latS : true, lonS : true }, 1 : { latS : false, lonS : true }, 2: { latS: false, lonS: false }, 3: { latS: true, lonS: false } }
+      }
       var currentState = runStates.off;
       var checkTimerCreate = 0;
       // Alarm is a oneshot, once dismissed return to Run but may trigger again on next check
       var flashTimerCreated = false;
       var alarmBg = true;  // used for toggling alarm flash
       var audioPlaying = false;
+
+// enough of the globals already
+
+        // calc DEMO_MODE coordinate offsets 
+        function calcOffsets()
+        {
+          let drPerPeriod  = initSpeed * checkTime / 60;
+          let drPerPeriod2 = subsSpeed * checkTime / 60;
+          let pos1 = pos2 = { latitude: 0, longitude: 0 };
+          pos2 = CalcEstPosition( pos1, drPerPeriod, initDir);
+          offsets.init.latOffset = pos2.latitude;
+          offsets.init.lonOffset = pos2.longitude;
+          pos2 = CalcEstPosition( pos1, drPerPeriod2, subsDir );
+          offsets.subs.latOffset = pos2.latitude;
+          offsets.subs.lonOffset = pos2.longitude;
+          offsets.init.loopCount = initDur / checkTime;
+          console.log("DEMO  | calcOff | offsets [ " 
+          + offsets.init.latOffset.toFixed(4) + ", "
+          + offsets.init.lonOffset.toFixed(4) + " ], [ "
+          + offsets.subs.latOffset.toFixed(4) + ", "
+          + offsets.subs.lonOffset.toFixed(4) + " ]" );
+        }
 
       // onload Main function
       function StartApp()
@@ -121,7 +159,9 @@
         DisplayMain();
 
         // stop spewing my devt messages 
-        if ( !DEMO_MODE ) { console.log = function(){}}
+        if ( DEMO_MODE ) { 
+          calcOffsets();
+        } else { console.log = function(){}}
       }
 
 // this function throws an exception when called from timer callback
@@ -177,28 +217,28 @@
       { 
         currentState = inState;
         document.getElementById("z").value = currentState;
-        console.log("INFO  | changeState | chg state to: "+inState );
+        console.log("INFO  | chgSte | chg state to: "+inState );
         switch( inState ) {
           case runStates.off:
-          console.log("DEBUG | chg state case: runStates.off ::"+inState+":: " );
+          console.log("DEBUG | chgSte | case: runStates.off ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.off; // LightTeal
             disableButton( but.run );
             disableButton( but.off );
           break;
           case runStates.standby:
-          console.log("DEBUG | chg state case: runStates.standby ::"+inState+":: " );
+          console.log("DEBUG | chgSte | case: runStates.standby ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.stby; // Beer
             enableButton( but.run );
             enableButton( but.off );
           break;
           case runStates.run:
-          console.log("DEBUG | chg state case: runStates.run ::"+inState+":: " );
+          console.log("DEBUG | chgSte | case: runStates.run ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.run; // lightgreen
             disableButton( but.run );
             disableButton( but.reset);
           break;
           case runStates.alarm:
-          console.log("DEBUG | chg state case: runStates.alarm ::"+inState+":: " );
+          console.log("DEBUG | chgSte | case: runStates.alarm ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.alarm; // FireEngineRed
             //disableButton( but.stby );
             //disableButton( but.run );
@@ -206,7 +246,7 @@
             //enableButton( but.reset );
           break;
           default:
-            console.log( "DEBUG | oops, default::"+inState+":: " );
+            console.log( "ERROR | chgSte | oops, default::"+inState+":: " );
           break;
         }
       }
@@ -216,7 +256,7 @@
          audio = new Audio("Illustrious.wav");
          audio.loop = true;
          audio.volume = 0.2;
-         console.log("DEBUG | setupAudio | audio src is: " + audio.src );
+         console.log("DEBUG | setAud | audio src is: " + audio.src );
       }
 
       // called from multiple places, on startup, when log dismissed when alarm dismissed 
@@ -235,10 +275,10 @@
       // clear all run values 
       function ResetData()
       {
-        console.log("DEBUG | ResetData |" );
+        console.log("DEBUG | ResetD |" );
         deltaT = deltaD = heading = course = xte = cseError = 0;
         if( DEMO_MODE ) {
-          latOffset = 0.01; lonOffset = 0.01;
+          latOffAcc = latOffset; lonOffAcc = lonOffset;
           loopCount = 0;
         }
       }
@@ -246,7 +286,7 @@
       // update displayed data, do it all at once rather than piecemeal
       function UpdateDisplay()
       {
-        console.log("DEBUG | UpdateDisplay |" );
+        console.log("DEBUG | UpDisp |" );
         min = deltaT%60;
         hrAndMin  = Math.trunc(deltaT/60).toString().padStart(2, "0") +":" + min.toString().padStart(2, "0");
         document.getElementById("deltaT").value = hrAndMin;
@@ -259,7 +299,7 @@
 
       function ClearDisplay()
       {
-        console.log("DEBUG | ClearDisplay |" );
+        console.log("DEBUG | ClDisp |" );
         hrAndMin  = " ";
         document.getElementById("deltaT").value = " ";
         document.getElementById("heading").value = " ";
@@ -272,7 +312,7 @@
       function OutCChg()
       {
         y = document.getElementById("y");
-        y.value = document.getElementById("accVar" ).value;
+        y.value = document.getElementById("acVar" ).value;
       }
 
       function OutXChg()
@@ -311,12 +351,16 @@
             catch { }
           }
           // timer not running, settings changed before run so leave it alone
+          if ( DEMO_MODE ) {
+            // Adjust the course offsets as we don't want to be speeding up or slowing down
+            //newOffset = oldOffset * checkTime / oldCheckTime;
+          }
         }
-        if ( document.getElementById("accVar").value != acceptableVariation )
-          acceptableVariation = Number( document.getElementById("accVar").value);
-        if ( document.getElementById("xtVar").value != xteVariation )
-          xteVariation = Number( document.getElementById("xtVar").value);
-        console.log("DEBUG | UpdateSettings | checkTimer: accVar: xteVar: " );
+        if ( document.getElementById("acVar").value != accVar )
+          accVar = Number( document.getElementById("acVar").value);
+        if ( document.getElementById("xtVar").value != xteVar )
+          xteVar = Number( document.getElementById("xtVar").value);
+        console.log("DEBUG | UpdSet | checkTime: "+checkTime+" accVar: "+accVar+" xteVar: "+xteVar );
         DisplayMain();
       }
       
@@ -341,6 +385,7 @@
           console.log("INFO  | StbyMain | state: "+currentState+" reseting data" );
           ResetData();
         }
+        changeState( runStates.standby );
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
@@ -351,7 +396,6 @@
             currentLoc.latitude = initialLoc.latitude;
             currentLoc.longitude = initialLoc.longitude;
             UpdateDisplay();
-            changeState( runStates.standby );
             LogEntry( initialLoc );
           }
           function locationError(err) {
@@ -380,11 +424,14 @@
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if ( DEMO_MODE ) {
-              currentLoc.latitude = position.coords.latitude + latOffset;
-              currentLoc.longitude = position.coords.longitude + lonOffset;
+              currentLoc.latitude += latOffAcc;
+              currentLoc.longitude += lonOffAcc;
+              latOffAcc += latOffset;
+              lonOffAcc += lonOffset;
             }
             dAndc = DandCPlane( initialLoc, currentLoc);
-            ResetData();
+            // this clears the latOffAcc etc. and messes up the demo
+            //ResetData();
             heading = Math.round(dAndc.brg);
             console.log(`INFO  | RunMain | current Lat:${currentLoc.latitude} Lon:${currentLoc.longitude} heading:${heading}`);
             document.getElementById("heading").value = heading+"°";
@@ -515,10 +562,10 @@
         // copy current settings values to display objects both input & output
         document.getElementById("checkTime").value = checkTime;
         document.getElementById("x").value         = checkTime;
-        document.getElementById("accVar").value    = acceptableVariation;
-        document.getElementById("y").value         = acceptableVariation;
-        document.getElementById("xtVar").value     = xteVariation;
-        document.getElementById("y2").value        = xteVariation;
+        document.getElementById("acVar").value     = accVar;
+        document.getElementById("y").value         = accVar;
+        document.getElementById("xtVar").value     = xteVar;
+        document.getElementById("y2").value        = xteVar;
 
               // FIXME hmm, why heading alone here ??
         document.getElementById("heading").value = heading+"°";
@@ -535,41 +582,48 @@
         // get current location
         if (navigator.geolocation) {  
           navigator.geolocation.getCurrentPosition(function(position) {
+            // ripple
+            previousLoc.latitude = currentLoc.latitude;
+            previousLoc.longitude = currentLoc.longitude;
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if( DEMO_MODE ){
-                currentLoc.latitude +=  latOffset;
-                currentLoc.longitude += lonOffset;
-                // hmm, 10 min @ 5kts is about 800m 
-                // 0.001 degree ~ 108m so 0.005 should do it
-                latOffset += 0.005;  
-                lonOffset += 0.005;  
+                currentLoc.latitude  += latOffAcc;
+                currentLoc.longitude += lonOffAcc;
                 loopCount++;
-                if (loopCount > 10 ) {
-                  latOffset += 0.005;  
-                  lonOffset -= 0.010;  
+                if (loopCount > 12 ) {
+                  // turn which way and how hard?
+                  // for 20 minlatOffset = 0.04;  
+                  // for 20 minlonOffset = 0.02;  
+                  // for 5 min test
+                  latOffset = -0.01;  
+                  lonOffset = -0.005;  
                 }
-                console.log(`--------------------------------------------------------------------------------------------------------------------------`);
-                console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} LatOffset: ${latOffset.toPrecision(4)} LonOffset: ${lonOffset.toPrecision(4)}`);
+                console.log(`-----------------------------------------------------------------------------`);
+                console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${latOffAcc.toPrecision(4)}:${lonOffAcc.toPrecision(4)}][${latOffset}:${lonOffset}]`);
+                latOffAcc += latOffset;
+                lonOffAcc += lonOffset;
             }            
-            console.log(`INFO  | DoIt   | cur posn Lat: ${currentLoc.latitude.toFixed(4)} Lon: ${currentLoc.longitude.toFixed(4)}`);
+            console.log(`INFO  | DoIt   | cp [ lat: ${currentLoc.latitude.toFixed(4)} lon: ${currentLoc.longitude.toFixed(4)} ]`);
             // calc deltaD and course from start point
             // corse is not current heading, we don't calc that (yet)
-            dAndC = DandCPlane( initialLoc, currentLoc );
-            deltaD = Math.trunc(dAndC.dist*100)/100;
+            dAndC = DandCPlane( previousLoc, currentLoc );
+            dist = Math.trunc(dAndC.dist*100)/100;
+            deltaD += dist; 
             deltaT += checkTime; // this could drift if user plays with check time
             course = Math.round(dAndC.brg);
-            console.log(`INFO  | DoIt   | course: ${course} deltaT: ${deltaT} deltaD: ${deltaD}`);
-            // calc expected posn, use heading as set when changed to run mode
-            estLoc = CalcEstPosition( initialLoc, deltaD, heading );
-            console.log(`INFO  | DoIt   | est posn Lat: ${estLoc.latitude.toFixed(4)} Lon: ${estLoc.longitude.toFixed(4)}`);
+            console.log(`INFO  | DoIt   | course: ${course} deltaT: ${deltaT} deltaD: ${deltaD.toPrecision(3)} dr: ${dist}`);
+            // calc expected posn, use heading as set when changed to run mode and previous loc
+            estLoc = CalcEstPosition( previousLoc, dist, heading );
+            console.log(`INFO  | DoIt   | ep [ lat: ${estLoc.latitude.toFixed(4)} lon: ${estLoc.longitude.toFixed(4)} ]`);
             // calc XTE and Cse Error
             dAndC2 = DandCPlane( estLoc, currentLoc );
             xte = Math.round(dAndC2.dist*1800); // distance from expected location
             cseError = Math.abs( heading - course );   
-            console.log(`INFO  | DoIt   | xte: ${xte} cseError: ${cseError}`);
+            console.log(`INFO  | DoIt   | xte: ${xte} (${xteVar}) cseError: ${cseError} (${accVar})`);
             UpdateDisplay();
-            if( cseError > acceptableVariation ) { // are we off course?
+            if(( cseError > accVar ) | ( xte > xteVar )) { // are we off course?
+            console.log(`ALARM | DoIt   | xteVar: ${xteVar} accVar: ${accVar}`);
               DisplayAlarm();
             } 
             else {
@@ -588,68 +642,47 @@
       }
 
 
-      // shrt distances, use simple trig after converting to Minutes of arc
+      // short distances, use simple trig after converting to Minutes of arc
       function DandCPlane( pos1, pos2 )
       {
-        console.log(`INFO  | D&C    | p1 lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} p2 lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)}`);
+        console.log(`INFO  | D&C    | p1 [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] p2 [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ]`);
         adj = cosd( pos1.latitude ); // parallel sailing adjust from lattitude when converting form arc Minutes to Nm
         // this will fail if crossing the prime or antimeridian
-        dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
-        dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        //dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
+        //dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        dlonNm = ( pos1.longitude - pos2.longitude) * 60 * adj; 
+        dlatNm = ( pos1.latitude - pos2.latitude ) * 60;
         distanceNm = Math.sqrt( dlatNm*dlatNm + dlonNm*dlonNm ); 
         bearing = Math.acos(dlatNm/distanceNm)/dtr;
         bearing2 = Math.asin(dlonNm/distanceNm)/dtr;
-        // OR get bearing forst the distance
+        // OR get bearing first the distance
         bearing3 = atand( dlatNm / dlonNm );
         dist2 = dlonNm / sind( bearing3 );
         dist3 = dlatNm / cosd( bearing3 );
         // adjust bearing for quadrant
-        bearing = adjustForQuadrant( pos1, pos2, bearing);
-        console.log(`INFO  | D&C    | dlon: ${dlonNm.toFixed(4)} dlat: ${dlatNm.toFixed(4)} dist: ${distanceNm.toFixed(2)}
-        brg: ${bearing.toFixed(0)} brg2: ${bearing2.toFixed(0)} brg3: ${bearing2.toFixed(0)} adj: ${adj.toFixed(4)}
-        dist2: ${dist2.toFixed(2)} dist3: ${dist3.toFixed(2)}`);
+        bearing  = adjustForQuadrant( pos1, pos2, bearing );
+        bearing2 = adjustForQuadrant( pos1, pos2, bearing2);
+        bearing3 = adjustForQuadrant( pos1, pos2, bearing3);
+        console.log(`INFO  | D&C    | All NM ->( dlon: ${dlonNm.toFixed(4)} dlat: ${dlatNm.toFixed(4)} ) Latadj: ${adj.toFixed(4)}
+               | brg: ${bearing.toFixed(0)} brg2: ${bearing2.toFixed(0)} brg3: ${bearing2.toFixed(0)}
+               | dist: ${distanceNm.toFixed(2)} dist2: ${dist2.toFixed(2)} dist3: ${dist3.toFixed(2)}`);
         return { dist: distanceNm, brg: bearing }
       }
 
-/*
-      // used for current&original AND current&estimated
-      // as the distances involved are quite short just use plane sailing calculations
-      function DistAndCourse( pos1, pos2 )
-      {
-        // FIXME need to know if we are sailing away from equ / prime | anti meridian or towards
-        // FIXME need to see if we go around the horn either way
-        // truncate the bloody lat&lon
-        console.log(`D&C p1 lat:${pos1.latitude} lon:${pos1.longitude} p2 lat:${pos2.latitude} lon:${pos2.longitude}`);
-        dlonMin = Math.abs( pos1.longitude - pos2.longitude) * 60;
-        dlatMin = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-              // FIXME need to ensure m-lat 0-90 // dlon in minutes 
-        departure = dlonMin * cosd( dlat );
-              // FIXME may need to adjust for quadrant
-        bearing = atand( departure / dlon);
-        distance = dlat / cosd( bearing );  // this is in degrees
-        console.log(`D&C dlon:${dlon} dlat:${dlat} mlat:${mlat} dep:${departure} brg:${bearing} dist:${distance}`);
-        distanceNm = distance;   // minutes 
-        //console.log(`DandC dist: ${distanceNm} direction: ${bearing}` );
-        // return distance(nm), brg(deg)
-        return { dist: distanceNm, brg: bearing }
-      }
-
-*/
       // est where we should have been after this distance
       function CalcEstPosition( pos1, distNm, brg )
       {
         var pos2 = { latitude: 0, longitude: 0 };
-              // FIXME need to determine quadrant for sign of +/- applying d-
-              // FIXME need to see if we go around the horn either way
+        // FIXME need to see if we go around the horn either way
         dist = distNm / 60;
         dlat = dist * cosd( brg );
         departure = dist * sind( brg );
         dlon = departure / cosd( pos1.latitude )  // should be m-lat but close enough
-        // FIXME need to get the sign correct here based on the quadrant
-        pos2.latitude = pos1.latitude + dlat;
-        pos2.longitude = pos1.longitude + dlon;
-        console.log(`INFO  | CEP    | p1 lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} distNm: ${distNm} brg: ${brg}`);
-        console.log(`INFO  | CEP    | p2 lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)}`);
+        // cos & sin return correct sign (+/-) , so just add
+          pos2.latitude = pos1.latitude + dlat;
+          pos2.longitude = pos1.longitude + dlon;
+        console.log(`INFO  | CEP    | pp [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm} brg: ${brg}`);
+        console.log(`INFO  | CEP    | ep [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ]`);
         return( pos2 );
       }
 
@@ -704,13 +737,15 @@ function quadrantIs( brg )
 }
 
 // Add or Subtract deltas
-function addOrSubtract( pos1, pos2 )
+// there are 16 cases here, only dealing with 2
+// replace with look up table
+function AddOrSubtract( pos1, pos2 )
 {
-  var addLat, addLon;
+  const addLat = true, addLon = true;
   if (( pos1.latitude > 0 ) & ( pos2.latitude > 0 )) {
     // both north
-    if ( pos1.latitude > pos2.latitude ){
-    // subtract latitude
+    if ( pos1.latitude < pos2.latitude ){
+      // subtract latitude
       addLat = false;
     } else {
       // add latitude
@@ -728,12 +763,12 @@ function addOrSubtract( pos1, pos2 )
     }
   } else {
     if (( pos1.longitude < 0 ) & ( pos2.longitude < 0 )) {
-    // both West
-    if ( pos1.longitude > pos2.longitude ){
-      addLon = true; // add longitude
-    } else {
-      addLon = false; // subtract longitude
-    }
+      // both West
+      if ( pos1.longitude < pos2.longitude ){
+        addLon = true; // add longitude
+      } else {
+        addLon = false; // subtract longitude
+      }
     } else {
       // yikes, crossed prime meridian or the antieridian
     }
@@ -785,7 +820,11 @@ function LogEntry( loc )
         minEl = deltaT%60;
         timeEl  = Math.trunc(deltaT/60).toString().padStart(2, " ") +":" + minEl.toString().padStart(2, "0");
         // Distance MM.mm or MMM.m
-        distEl = deltaD.toPrecision().toString().padStart(5, " " );
+        if ( deltaD < 100 ) {
+          distEl = deltaD.toFixed(2).toString().padStart(5, " " );
+        } else {
+          distEl = deltaD.toFixed(1).toString().padStart(5, " " );
+        }
         // Lat/Lon DDD.dddd 
         lat = PadNumber(loc.latitude, 3, 4);
         lon = PadNumber(loc.longitude, 3, 4);
@@ -795,9 +834,9 @@ function LogEntry( loc )
         cse = PadNumber(course, 3, 0 );
         //console.log( "hdg:" + hdg +"cse:" +  cse );
         // dont use `${timeStr}`  as strings get turned back into numbers 
-        const line1 = "|"+timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte+"|\n" +
-                      "|"+currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError+"|\n" +
-                      "|-----|------------|-------|--------|-----|\n";
+        const line1 = "|"+timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte.toString().padStart(3, " ")+"|\n" +
+                      "|"+currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError.toString().padStart(3, " ")+"|\n" +
+                      "|-----|------------|-------|--------|-------|\n";
         
         // prepend message so most recent at top
         var logText = document.getElementById('logTextArea');
@@ -920,7 +959,7 @@ function PadNumber( num, pre, places )
     <td><legend>Off Course Limit (Degrees)</legend></td>
   </tr>
   <tr>
-    <td><input type="range" id="accVar" value="5" min="5" max="60" step="5" oninput="OutCChg()"></td>
+    <td><input type="range" id="acVar" value="5" min="5" max="60" step="5" oninput="OutCChg()"></td>
     <td><output id="y" class="setOut"></td>
   </tr>
   <tr>
@@ -943,7 +982,7 @@ function PadNumber( num, pre, places )
     <td><legend>Log</legend></td>
   </tr>
   <tr>
-    <textarea id="logTextArea" rows="15" cols="40" width="340px"></textarea>
+    <textarea id="logTextArea" rows="20" cols="40" width="420"></textarea>
   </tr>
   <tr>
    <td><button onclick="DisplayMain()" class="minorButton">Done</button></td>
