@@ -39,4 +39,4 @@ You can serve this to yourself on aphone if you install termux, then python in t
 ##### rawgit.com
 rawgit alows you to runfiles in a git repo, This is how I am testing on a phone. 
 This does rely on content being pushed to the cdn bit if so you get a local copy rather than back to git centeral. 
-https://rawcdm.githack.com/dna0xff/recipes/master/testOffcourse.html
+https://rawcdn.githack.com/dna0xff/recipes/master/testOffcourse.html
