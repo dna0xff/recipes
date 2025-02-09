@@ -43,7 +43,7 @@
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.06"
+      var version = "0.07"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
@@ -54,9 +54,6 @@
                       init: { latOffset: 0, lonOffset: 0 },
                       subs: { latOffset: 0, lonOffset: 0 } };
       var testSet = offsets.init; 
-
-    //  var latOffset = -0.0075; lonOffset = -0.0075;  // vars to fake movement for testing 0.01 is ~ 0.6nm
-    //  var latOffAcc = latOffset; lonOffAcc = lonOffset;  // vars to maintain the Accumulated offset
       var genAlarm = true;  // after a few iterations start to wander off track
       var loopCount = 0;
 
@@ -110,6 +107,12 @@
         // calc DEMO_MODE coordinate offsets 
         function calcOffsets()
         {
+          initDir = document.getElementById("initcse").value;
+          initSpeed = document.getElementById("initspd").value;
+          initDur = document.getElementById("initdur").value;
+          subsDir = document.getElementById("subscse").value;
+          subsSpeed = document.getElementById("subsspd").value;
+
           let drPerPeriod  = initSpeed * checkTime / 60;
           let drPerPeriod2 = subsSpeed * checkTime / 60;
           let pos1 = pos2 = { latitude: 0, longitude: 0 };
@@ -167,7 +170,14 @@
 
         // stop spewing my devt messages 
         if ( DEMO_MODE ) { 
-          calcOffsets();
+          document.getElementById("initcse").value = initDir;
+          document.getElementById("initspd").value = initSpeed;
+          document.getElementById("initdur").value = initDur;
+          document.getElementById("subscse").value = subsDir;
+          document.getElementById("subsspd").value = subsSpeed;
+          // do this later, when user has tweaked the inputs
+          // calcOffsets();
+        // console.log = function(){};
         } else { console.log = function(){}}
       }
 
@@ -285,7 +295,8 @@
         console.log("DEBUG | ResetD |" );
         deltaT = deltaD = heading = course = xte = cseError = 0;
         if( DEMO_MODE ) {
-          latOffAcc = latOffset; lonOffAcc = lonOffset;
+            // FIXME once the accumulated offset was moved to an object it never gets cleared
+          //latOffAcc = latOffset; lonOffAcc = lonOffset;
           loopCount = 0;
         }
       }
@@ -431,12 +442,8 @@
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if ( DEMO_MODE ) {
-              /*currentLoc.latitude += latOffAcc;
-              currentLoc.longitude += lonOffAcc;
-              latOffAcc += latOffset;
-              lonOffAcc += lonOffset;
-              */
               // change the coords, then increment the offset for next time
+              calcOffsets();
               currentLoc.latitude += offsets.accu.latOffAcc;
               currentLoc.longitude += offsets.accu.lonOffAcc;
               offsets.accu.latOffAcc += testSet.latOffset;
@@ -519,10 +526,14 @@
           if ( flashTimerCreated == false ) {
             flashTimer = window.setInterval(ToggleScreen, 1000);
             flashTimerCreated = true;
+          console.log("flash timer created" );
+          console.log ("DEBUG | dispAlarm | created alarm timer " );
+          } else {
+          console.log ("ERROR | dispAlarm | flash timer already created" );
           }
         }
         catch(err) {  
-          colsole.log ("ERROR | dispAlarm | error creating alarm timer " );
+          console.log ("ERROR | dispAlarm | error creating alarm timer " );
         }
       }
 
@@ -543,6 +554,7 @@
         if ( audioPlaying == true ) {
           audio.pause();
           audioPlaying = false;
+          console.log("DEBUG | Reset  | Audio paused" );
         }
         else { 
             console.log("ERROR | Reset  | no audio playing to pause ???" );
@@ -551,7 +563,8 @@
         try {
           if ( flashTimerCreated == true ) {
             window.clearInterval( flashTimer );
-            flashTimerCreate = false;
+            flashTimerCreated = false;
+            console.log("DEBUG | Reset  | flash timer cleared ftC = false" );
           }
           else { 
             console.log("ERROR | Reset  | no flash timer to clear ???" );
@@ -606,31 +619,19 @@
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if( DEMO_MODE ){
-              /*currentLoc.latitude  += latOffAcc;
-              currentLoc.longitude += lonOffAcc;
-              */
-              console.log("pp  before adjust lat: " + previousLoc.latitude.toFixed(4) + " cp lat: " + currentLoc.latitude.toFixed(4) +" offset: " + testSet.latOffset + " accum: " + offsets.accu.latOffAcc );
+            //  console.log("pp  before adjust lat: " + previousLoc.latitude.toFixed(4) + " cp lat: " + currentLoc.latitude.toFixed(4) +" offset: " + testSet.latOffset + " accum: " + offsets.accu.latOffAcc );
               currentLoc.latitude  += offsets.accu.latOffAcc;
               currentLoc.longitude += offsets.accu.lonOffAcc;
-              console.log("cp after offset adjust [ lat " + currentLoc.latitude.toFixed(4) + " lon " + currentLoc.longitude.toFixed(4) + "] " );
+             // console.log("cp after offset adjust [ lat " + currentLoc.latitude.toFixed(4) + " lon " + currentLoc.longitude.toFixed(4) + "] " );
               loopCount++;
-              if (loopCount > 12 ) {
-                // turn which way and how hard?
-                // for 20 minlatOffset = 0.04;  
-                // for 20 minlonOffset = 0.02;  
-                // for 5 min test
-                latOffset = -0.01;  
-                lonOffset = -0.005;  
+              if (loopCount > offsets.accu.loopCount ) {
                 testSet = offsets.subs;
               }
               console.log(`-----------------------------------------------------------------------------`);
               //console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${latOffAcc.toPrecision(4)}:${lonOffAcc.toPrecision(4)}][${latOffset}:${lonOffset}]`);
-              console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}][${offsets.init.latOffset}:${offsets.init.lonOffset}]`);
-              //latOffAcc += latOffset;
-              //lonOffAcc += lonOffset;
+              console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}][${offsets.init.latOffset.toPrecision(4)}:${offsets.init.lonOffset.toPrecision(4)}]`);
               offsets.accu.latOffAcc += testSet.latOffset;
               offsets.accu.lonOffAcc += testSet.lonOffset;
-              console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}][${offsets.init.latOffset}:${offsets.init.lonOffset}]`);
             }            
             console.log(`INFO  | DoIt   | cp [ lat: ${currentLoc.latitude.toFixed(4)} lon: ${currentLoc.longitude.toFixed(4)} ]`);
             // calc distance and course from previous position point
@@ -679,8 +680,6 @@
         // this will fail if crossing the prime or antimeridian
         dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
         dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
-        //dlonNm = ( pos1.longitude - pos2.longitude) * 60 * adj; 
-        //dlatNm = ( pos1.latitude - pos2.latitude ) * 60;
         distanceNm = Math.sqrt( dlatNm*dlatNm + dlonNm*dlonNm ); 
         bearing = Math.acos(dlatNm/distanceNm)/dtr;
         bearing2 = Math.asin(dlonNm/distanceNm)/dtr;
@@ -710,7 +709,7 @@
         // cos & sin return correct sign (+/-) , so just add
           pos2.latitude = pos1.latitude + dlat;
           pos2.longitude = pos1.longitude + dlon;
-        console.log(`INFO  | CEP    | pp [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm} brg: ${brg}`);
+        console.log(`INFO  | CEP    | pp [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm.toFixed(2)} brg: ${brg}`);
         console.log(`INFO  | CEP    | ep [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ]`);
         return( pos2 );
       }
@@ -1021,9 +1020,19 @@ function PadNumber( num, pre, places )
 </table>
 </div>
 <p>This is pretty simple:</p>
-<button onclick="DemoPref()"    class="minorButton">Demo</button></td>
+<div id="demoParms" >
+<button onclick="DemoPref()"    class="minorButton">Demo</button><br>
+<label for="initCse"> cse spd dur </label><br>
+<label for="initCse">init</label>
+<input type="text" id="initcse" name="initcse" size="4">
+<input type="text" id="initspd" name="initspd" size="4">
+<input type="text" id="initdur" name="initdur" size="4"><br>
+<label for="initCse">subs</label>
+<input type="text" id="subscse" name="subscse" size="4">
+<input type="text" id="subsspd" name="subsspd" size="4"><br>
+</div>
 <ol>
-  <li>Press <b>Stby</b> to capture an initial position.</li>
+  <li>Press <b>Stby</b> to capture an subsial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
   <li>review <b>Settings</b> for desired checking interval and off-course bearing and xte limit.</li>
   <li>press <b>Run</b> to capture the current position. A heading will be calculated and a timer started.</li>
