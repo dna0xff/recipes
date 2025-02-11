@@ -4,17 +4,16 @@
   <head>
     <title>Off course alarm testing</title>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <meta name="viewport" content="width=320, user-scalable=yes, initial-scale=1">
+    <meta name="viewport" content="width=340, user-scalable=yes, initial-scale=1">
     <style>
-      :root { --main-text: #000080; --main-out: #B3B3D9; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
+    html { background-color: papayawhip; } body { min-height: 100vh; max-width: 340px; background-color: #7DFDFE; margin: 0 auto; }
+      :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
               --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
       h1 { color: blue; font-size: 24px; }
       .outData { padding: 6px 20px; margin-bottom: 20px; line-height: normal; width: 30%;
-                 color: var(--main-text);
-                 /*background: var(--main-out); color: var(--main-text); 
-                 border: 1px solid #ddd; */ border-radius: 4px; font-size: 18px; font-weight: bold; }
+                 color: var(--main-text); border-radius: 4px; font-size: 18px; font-weight: bold; }
       .setOut { color: var(--main-text); font-size: 16px; font-weight: bold; }
-      .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 8px; }
+      .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 8px; text-align: center; }
 
       .noHover { padding: 12px 24px; background: var(--grey-button); color: #8f8d8a;
                font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
@@ -38,6 +37,50 @@
       legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px;}
 
       Form { display: none; }
+
+.box { height: 24px; float: left; display: flex; flex-direction: row; }
+.green { background-image: -webkit-linear-gradient(top, #13fB04 0%, #58e343 50%, #ADED99 100%); }
+
+.orange { background-image: -webkit-linear-gradient(top, #f9a004 0%, #e0ac45 50%, #ead698 100%); }
+
+.red { background-image: -webkit-linear-gradient(top, #fb1304 0%, #e35843 50%, #edad99 100%);
+    animation: blinkRed 1.5s infinite; }
+
+@keyframes blinkRed {
+    from { background-color: #F00; }
+    50% { background-color: #A00; box-shadow: rgba(0, 0, 0, 0.2) 0 -1px 7px 1px, inset #441313 0 -1px 9px, rgba(255, 0, 0, 0.5) 0 2px 0;}
+    to { background-color: #F00; }
+}
+
+.led {
+    border-radius: 5px;
+    width: 10px;
+    height: 10px;
+    box-shadow: 0px 0px 3px black;
+    margin: 4px;
+    zoom: 0;
+}
+
+.led:after {
+    display: block;
+    content: '';
+    margin-left: 1px;
+    margin-right: 1px;
+    width: 8px;
+    height: 6px;
+    -webkit-border-top-right-radius: 4px 3px;
+    -webkit-border-top-left-radius: 4px 3px;
+    -webkit-border-bottom-right-radius: 4px 3px;
+    -webkit-border-bottom-left-radius: 4px 3px;
+    background-image: -webkit-linear-gradient(top, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 100%);
+}
+
+.led-box {
+  height: 24;
+  width: 24;
+  margin: 0px 0;
+  float: left;
+}
     </style>
     <script type="text/javascript">
 
@@ -49,17 +92,17 @@
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
       // for 5 min check
       var initDir = 30; initSpeed = 5.2; initDur = 50;
-      var subsDir = 34; subsSpeed = 5.2;
-      var offsets = { accu: { latOffAcc: 0, lonOffAcc: 0, loopCount: 0 },
+      var subsDir = 34; subsSpeed = 5.2; hemiSphere = "NE"
+      var offsets = { accu: { latOffAcc: 0, lonOffAcc: 0, loopCount: 0, hemisp: "" },
                       init: { latOffset: 0, lonOffset: 0 },
                       subs: { latOffset: 0, lonOffset: 0 } };
       var testSet = offsets.init; 
-      var genAlarm = true;  // after a few iterations start to wander off track
       var loopCount = 0;
+      var quadrant = 1; // adjust once bearing is known, used to determine if offsets added or subtracted 
 
       var dtr = Math.PI/180;
       // set these to your desired default values
-      var checkTime=5, accVar=5; xteVar=400;
+      var checkTime=5, accVar=5; xteVar=200;
       var initialLoc  = { latitude: 0, longitude: 0 };
       var currentLoc  = { latitude: 0, longitude: 0 };
       var previousLoc = { latitude: 0, longitude: 0 };
@@ -87,14 +130,6 @@
         log:  "log",
         settings: "settings"
       }
-      /*
-      const addSign = { 
-          N : { 1 : { latS : true, lonS : true }, 2 : { latS : false, lonS : true }, 3: { latS: false, lonS: false }, 4: { latS: true, lonS: false } },
-          S : { 2 : { latS : true, lonS : true }, 3 : { latS : false, lonS : true }, 4: { latS: false, lonS: false }, 1: { latS: true, lonS: false } },
-          E : { 3 : { latS : true, lonS : true }, 4 : { latS : false, lonS : true }, 1: { latS: false, lonS: false }, 2: { latS: true, lonS: false } },
-          W : { 4 : { latS : true, lonS : true }, 1 : { latS : false, lonS : true }, 2: { latS: false, lonS: false }, 3: { latS: true, lonS: false } }
-      }
-      */
       var currentState = runStates.off;
       var checkTimerCreate = 0;
       // Alarm is a oneshot, once dismissed return to Run but may trigger again on next check
@@ -107,16 +142,17 @@
         // calc DEMO_MODE coordinate offsets 
         function calcOffsets()
         {
-          initDir = document.getElementById("initcse").value;
+          initDir = Number( document.getElementById("initcse").value );
           initSpeed = document.getElementById("initspd").value;
           initDur = document.getElementById("initdur").value;
-          subsDir = document.getElementById("subscse").value;
+          subsDir = Number( document.getElementById("subscse").value ) ;
           subsSpeed = document.getElementById("subsspd").value;
+          currentHemi = document.getElementById("hemisp").value;
 
           let drPerPeriod  = initSpeed * checkTime / 60;
           let drPerPeriod2 = subsSpeed * checkTime / 60;
           let pos1 = pos2 = { latitude: 0, longitude: 0 };
-          pos2 = CalcEstPosition( pos1, drPerPeriod, initDir);
+          pos2 = CalcEstPosition( pos1, drPerPeriod, initDir );
           offsets.init.latOffset = pos2.latitude;
           offsets.init.lonOffset = pos2.longitude;
           pos2 = CalcEstPosition( pos1, drPerPeriod2, subsDir );
@@ -124,13 +160,16 @@
           offsets.subs.lonOffset = pos2.longitude;
           offsets.accu.loopCount = initDur / checkTime;
           testSet = offsets.init;
-          offsets.accu.latOffAcc += testSet.latOffset;
-          offsets.accu.lonOffAcc += testSet.lonOffset;
-          console.log("DEMO  | calcOff | offsets [ " 
+          // FIXME += or just =, should be no previous value. are offsets ever signed? 
+          offsets.accu.latOffAcc = testSet.latOffset;
+          offsets.accu.lonOffAcc = testSet.lonOffset;
+          console.log("DEMO  | calcOff | hemisphere: " + currentHemi + " offsets [ " 
           + offsets.init.latOffset.toFixed(4) + ", "
           + testSet.lonOffset.toFixed(4) + " ], [ "
           + offsets.subs.latOffset.toFixed(4) + ", "
           + offsets.subs.lonOffset.toFixed(4) + " ]" );
+          // set hemisphere so gps loc can be tweaked to be in different hemisphere
+          offsets.accu.hemisp = currentHemi;
         }
 
       // onload Main function
@@ -145,7 +184,7 @@
           // FIXME going to need to disable everything and just display some info
           return;
         }
-        document.getElementById("MainPage").style.width = "320px"; 
+        document.getElementById("MainPage").style.width = "340px"; 
         // get a bunch of object id's once so we dont do it multiple times 
         // interesting, this is a hack to reuse previously retreived Id's 
         // works ok as is but if used with backgroundColor and explicit values, flags a runtime error
@@ -164,6 +203,7 @@
 
         // disable the reset button 
         disableButton( but.reset );
+        orangeLed();
         // now the real setup
         SetupAudio();
         DisplayMain();
@@ -175,6 +215,7 @@
           document.getElementById("initdur").value = initDur;
           document.getElementById("subscse").value = subsDir;
           document.getElementById("subsspd").value = subsSpeed;
+          document.getElementById("hemisp").value = hemiSphere;
           // do this later, when user has tweaked the inputs
           // calcOffsets();
         // console.log = function(){};
@@ -197,11 +238,31 @@
       function enableButton( inButton ) 
       {
         if ( document.getElementById(inButton).disabled ) {
-          //      console.log("enable inButton ::"+inButton+":: ");
           document.getElementById(inButton).classList.add("majorButton");
           document.getElementById(inButton).classList.remove("noHover");
           document.getElementById(inButton).disabled = false;
         }
+      }
+
+      function blinkLed()
+      {
+        document.getElementById("statusLed").classList.remove("green");
+        document.getElementById("statusLed").classList.remove("orange");
+        document.getElementById("statusLed").classList.add("red");
+      }
+
+      function greenLed()
+      {
+        document.getElementById("statusLed").classList.remove("red");
+        document.getElementById("statusLed").classList.remove("orange");
+        document.getElementById("statusLed").classList.add("green");
+      }
+
+      function orangeLed()
+      {
+        document.getElementById("statusLed").classList.remove("red");
+        document.getElementById("statusLed").classList.remove("green");
+        document.getElementById("statusLed").classList.add("orange");
       }
 
       function changeScreen( scr ) 
@@ -308,17 +369,17 @@
         min = deltaT%60;
         hrAndMin  = Math.trunc(deltaT/60).toString().padStart(2, "0") +":" + min.toString().padStart(2, "0");
         document.getElementById("deltaT").value = hrAndMin;
-        document.getElementById("heading").value = heading+"°";
+        document.getElementById("heading").value = heading.toFixed(0)+"°";
         document.getElementById("deltaD").value = deltaD.toPrecision(3)+"nm";
-        document.getElementById("course").value = course+"°";
-        document.getElementById("xteMain").value = xte+" m";
-        document.getElementById("cseEMain").value = cseError+"°";
+        document.getElementById("course").value = course.toFixed(0)+"°";
+        document.getElementById("xteMain").value = xte.toFixed(0)+" m";
+        document.getElementById("cseEMain").value = cseError.toFixed(0)+"°";
       }
 
       function ClearDisplay()
       {
         console.log("DEBUG | ClDisp |" );
-        hrAndMin  = " ";
+        hrAndMin  = 0;
         document.getElementById("deltaT").value = " ";
         document.getElementById("heading").value = " ";
         document.getElementById("deltaD").value = " ";
@@ -397,19 +458,40 @@
           // stop the clock!
           window.clearInterval( checkTimer);
           checkTimerCreate--;
-          console.log("INFO  | StbyMain | checkTimerCreate: "+checkTimerCreate );
+          console.log("INFO  | StbyMain | timer cleared, checkTimerCreate: "+checkTimerCreate );
         }
         if ( currentState == runStates.standby ) {
           console.log("INFO  | StbyMain | state: "+currentState+" reseting data" );
           ResetData();
         }
         changeState( runStates.standby );
+        calcOffsets();
+        greenLed();
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
-            initialLoc.latitude = position.coords.latitude;
+            initialLoc.latitude  = position.coords.latitude;
             initialLoc.longitude = position.coords.longitude;
-            console.log(`INFO  | StbyMain | ip [ lat ${initialLoc.latitude.toFixed(4)} lon ${initialLoc.longitude.toFixed(4)} ]`);
+            if ( DEMO_MODE ) {  // tweak for demo hemisphere
+                switch( offsets.accu.hemisp ){
+                    case "NE":
+                    break;
+                    case "SE":
+                        initialLoc.latitude  = -position.coords.latitude;
+                    break;
+                    case "SW":
+                        initialLoc.latitude  = -position.coords.latitude;
+                        initialLoc.longitude = -position.coords.longitude;
+                    break;
+                    case "NW":
+                        initialLoc.longitude = -position.coords.longitude;
+                    break;
+                    default:
+                      console.log(`ERROR | StbyMain | invalid hemisphere: ${offsets.accu.hemisp} `);
+                    break;
+                }
+            }
+            console.log(`INFO  | StbyMain | geo callback ip [ lat ${initialLoc.latitude.toFixed(4)} lon ${initialLoc.longitude.toFixed(4)} ]`);
             // not sure if we should zero these here
             currentLoc.latitude = initialLoc.latitude;
             currentLoc.longitude = initialLoc.longitude;
@@ -419,7 +501,7 @@
           function locationError(err) {
             // we come here if browser / load method doesn't allow geolocation, first call to API is when going into standby
             objectId.main.style.backgroundColor = c.err;  // Yellow
-            console.warn('ERROR(' + err.code + '): ' + err.message);
+            console.warn('ERROR( | StbyMain | ' + err.code + '): ' + err.message);
             document.getElementById("z").value = 'ERROR(' + err.code + '): ' + err.message;
           }
         } else {
@@ -428,6 +510,7 @@
           document.getElementById("z").value = 'ERROR(' + errStr + '): ' + err.message;
           // should bomb out here as not going to work at all
         }
+        console.log("DEBUG | StbyMain | function exit");
       }
 
       // Run button pressed, start timer
@@ -435,49 +518,80 @@
       function RunMain()
       {
         // on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
-              disableButton( but.run );
-              // spin the cursor until callback? 
+        disableButton( but.run );
+        orangeLed();
+        // FIXME spin the cursor until callback? 
+        // do something to prevent user input while waiting for geo-callback
         if (navigator.geolocation) { 
-          navigator.geolocation.getCurrentPosition(function(position) {
+          navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
+          function locationSuccess(position) {
+            blinkLed();
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if ( DEMO_MODE ) {
+              switch( offsets.accu.hemisp ){
+                case "NE":
+                break;
+                case "SE":
+                  currentLoc.latitude  = -position.coords.latitude;
+                break;
+                case "SW":
+                  currentLoc.latitude  = -position.coords.latitude;
+                  currentLoc.longitude = -position.coords.longitude;
+                break;
+                case "NW":
+                  currentLoc.longitude = -position.coords.longitude;
+                break;
+                default:
+                  console.log(`ERROR | RunMain | invalid hemisphere: ${offsets.accu.hemisp} `);
+                break;
+              }
               // change the coords, then increment the offset for next time
-              calcOffsets();
+              // calcOffsets();  // needs to be done earlier
               currentLoc.latitude += offsets.accu.latOffAcc;
               currentLoc.longitude += offsets.accu.lonOffAcc;
               offsets.accu.latOffAcc += testSet.latOffset;
               offsets.accu.lonOffAcc += testSet.lonOffset;
             }
-            console.log("DEBUG | RunMain | cp [ lat " + currentLoc.latitude.toFixed(4) +
-              " lon " + currentLoc.longitude.toFixed(4) + " ] offset: " + testSet.latOffset.toFixed(4) +
-              " accum: " + offsets.accu.latOffAcc.toFixed(4) );
+            console.log("DEBUG | RunMain | cp [ lat " +
+            currentLoc.latitude.toFixed(4) + " lon " + currentLoc.longitude.toFixed(4) + " ] offset: [ " +
+            testSet.latOffset.toFixed(4) + " " + testSet.lonOffset.toFixed(4) + "]  accum: [" +
+            offsets.accu.latOffAcc.toFixed(4) + " " + offsets.accu.latOffAcc.toFixed(4) )+ " ]";
+            offsets.accu.hemi = hemiFromLoc( initialLoc );
+            quadrant = quadFromLoc( initialLoc, currentLoc );
             dAndc = DandCPlane( initialLoc, currentLoc);
             // this clears the latOffAcc etc. and messes up the demo
             //ResetData();
-            heading = Math.round(dAndc.brg);
-            dist = Math.trunc(dAndc.dist*100)/100;
+            heading = dAndc.brg;
+            dist = dAndc.dist;
             deltaD += dist; 
             console.log(`INFO  | RunMain | cp [ lat${currentLoc.latitude.toFixed(4)} lon:${currentLoc.longitude.toFixed(4)} ] heading:${heading} deltaD:${deltaD} dist:${dist}`);
-            document.getElementById("heading").value = heading+"°";
+            document.getElementById("heading").value = heading.toFixed(0)+"°";
             changeState( runStates.run );
             LogEntry( currentLoc );
             // start the clock
             timeMsec = checkTime*60*1000;
             if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
             if( checkTimerCreate < 1 ) {
-               checkTimer = window.setInterval(DoIt, timeMsec);
-               checkTimerCreate++;
+             checkTimer = window.setInterval(DoIt, timeMsec);
+             checkTimerCreate++;
             }
             else {
               // timer already running, it's a logic error
               console.log("ERROR | RunMain | timer already running when Callback in RunMain" );
             }
             if ( checkTimerCreate > 1 ) console.log("ERROR | RunMain | Multiple check timers running");
-          });
+          }
+          function locationError(err) {
+            // we come here if browser / load method doesn't allow geolocation, first call to API is when going into standby
+            objectId.main.style.backgroundColor = c.err;  // Yellow
+            console.warn('ERROR | RunMain | (' + err.code + '): ' + err.message);
+            document.getElementById("z").value = 'ERROR(' + err.code + '): ' + err.message;
+          }
         } else {
-        console.log("ERROR | RunMain | Geolocation is not supported by this browser.");
+          console.log("ERROR | RunMain | Geolocation is not supported by this browser.");
         }
+        console.log("DEBUG | RunMain | function exit");
       } 
 
       // Stop Tracking and clear all values
@@ -492,14 +606,19 @@
           // fall through
         }
         changeState( runStates.off );
+        orangeLed();
         LogEntry( currentLoc );
         // reset all tracking variables so as to not have random effects
         ResetData();
         LogEntry( currentLoc );
         UpdateDisplay();
         // halt timer if set
-          try { window.clearInterval( checkTimer )}
-          catch(err) { } // do nothing, means we came back to off mode without running 
+          try { window.clearInterval( checkTimer )
+            console.log("DEBUG | OffMain | interval timer halted OK");
+          }
+          catch(err) { 
+            console.log("DEBUG | OffMain | catch exception: clearInterval() interval timer not running?? ");
+          } // do nothing, means we came back to off mode without running 
       }
 
       // called by DoIt function if alarm condition exists
@@ -599,7 +718,7 @@
         document.getElementById("y2").value        = xteVar;
 
               // FIXME hmm, why heading alone here ??
-        document.getElementById("heading").value = heading+"°";
+        document.getElementById("heading").value = heading.toFixed(0)+"°";
 
         changeScreen( screen.settings );
       }
@@ -613,84 +732,103 @@
         // get current location
         if (navigator.geolocation) {  
           // ripple
-           previousLoc.latitude = currentLoc.latitude;
-           previousLoc.longitude = currentLoc.longitude;
-           navigator.geolocation.getCurrentPosition(function(position) {
+          previousLoc.latitude = currentLoc.latitude;
+          previousLoc.longitude = currentLoc.longitude;
+          navigator.geolocation.getCurrentPosition(function(position) {
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
-            if( DEMO_MODE ){
-            //  console.log("pp  before adjust lat: " + previousLoc.latitude.toFixed(4) + " cp lat: " + currentLoc.latitude.toFixed(4) +" offset: " + testSet.latOffset + " accum: " + offsets.accu.latOffAcc );
+            console.log(`-----------------------------------------------------------------------------`);
+            if ( DEMO_MODE ){
+              switch( offsets.accu.hemisp ){
+                case "NE":
+                break;
+                case "SE":
+                  currentLoc.latitude  = -position.coords.latitude;
+                break;
+                case "SW":
+                  currentLoc.latitude  = -position.coords.latitude;
+                  currentLoc.longitude = -position.coords.longitude;
+                break;
+                case "NW":
+                  currentLoc.longitude = -position.coords.longitude;
+                break;
+                default:
+                  console.log(`ERROR | DoItCb | invalid hemisphere: ${offsets.accu.hemisp} `);
+                break;
+              }
+              console.log("DEBUG | DoItCb | hemisphere: "+offsets.accu.hemisp+" quadrant: "+quadrant );
               currentLoc.latitude  += offsets.accu.latOffAcc;
               currentLoc.longitude += offsets.accu.lonOffAcc;
-             // console.log("cp after offset adjust [ lat " + currentLoc.latitude.toFixed(4) + " lon " + currentLoc.longitude.toFixed(4) + "] " );
               loopCount++;
               if (loopCount > offsets.accu.loopCount ) {
                 testSet = offsets.subs;
               }
-              console.log(`-----------------------------------------------------------------------------`);
-              //console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${latOffAcc.toPrecision(4)}:${lonOffAcc.toPrecision(4)}][${latOffset}:${lonOffset}]`);
-              console.log(`DEBUG | DoIt   | DEMO MODE loop ${loopCount} Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}][${offsets.init.latOffset.toPrecision(4)}:${offsets.init.lonOffset.toPrecision(4)}]`);
+              console.log(`DEBUG | DoItCb | DEMO MODE loop ${loopCount}` +
+                          ` Acc[${offsets.accu.latOffAcc.toPrecision(4)}:${offsets.accu.lonOffAcc.toPrecision(4)}]`+
+                          ` [${offsets.init.latOffset.toPrecision(4)}:${offsets.init.lonOffset.toPrecision(4)}]`);
               offsets.accu.latOffAcc += testSet.latOffset;
               offsets.accu.lonOffAcc += testSet.lonOffset;
             }            
-            console.log(`INFO  | DoIt   | cp [ lat: ${currentLoc.latitude.toFixed(4)} lon: ${currentLoc.longitude.toFixed(4)} ]`);
+            console.log(`INFO  | DoItCb | cp [ lat: ${currentLoc.latitude.toFixed(4)} lon: ${currentLoc.longitude.toFixed(4)} ]`);
             // calc distance and course from previous position point
             dAndC = DandCPlane( previousLoc, currentLoc );
-            dist = Math.trunc(dAndC.dist*100)/100;
+            dist = dAndC.dist;
             deltaD += dist; 
             deltaT += checkTime; // this could drift if user plays with check time
-            course = Math.round(dAndC.brg);
-            console.log(`INFO  | DoIt   | course: ${course} deltaT: ${deltaT} deltaD: ${deltaD.toPrecision(3)} dr: ${dist}`);
+            course = dAndC.brg;
+            console.log(`INFO  | DoItCb | course: ${course.toFixed(0)} deltaT: ${deltaT} deltaD: ${deltaD.toPrecision(3)} dr: ${dist}`);
 
             // calc expected posn, use heading as set when changed to run mode and previous loc
             estLoc = CalcEstPosition( initialLoc, deltaD, heading );
-            console.log(`INFO  | DoIt   | ep [ lat: ${estLoc.latitude.toFixed(4)} lon: ${estLoc.longitude.toFixed(4)} ]`);
+            console.log(`INFO  | DoItCb | ep [ lat: ${estLoc.latitude.toFixed(4)} lon: ${estLoc.longitude.toFixed(4)} ]`);
 
             // calc XTE and Cse Error
             dAndC2 = DandCPlane( estLoc, currentLoc );
-            xte = Math.round(dAndC2.dist*1800); // distance from expected location
+            xte = dAndC2.dist*1800; // distance from expected location
             cseError = Math.abs( heading - course );   
-            console.log(`INFO  | DoIt   | xte: ${xte} (${xteVar}) cseError: ${cseError} (${accVar})`);
+            // FIXME, want to know which direction, port or stbd
+            console.log(`INFO  | DoItCb | xte: ${xte} (${xteVar}) cseError: ${cseError} (${accVar})`);
             UpdateDisplay();
-            if(( cseError > accVar ) | ( xte > xteVar )) { // are we off course?
-            console.log(`ALARM | DoIt   | xteVar: ${xteVar} accVar: ${accVar}`);
+            if (( cseError > accVar ) | ( xte > xteVar )) { // are we off course?
+              console.log(`ALARM | DoItCb | xteVar: ${xteVar} accVar: ${accVar}`);
               DisplayAlarm();
             } 
             else {
               // has there been an alarm condition and now there is not?
-              if( currentState == runStates.alarm ) {
+              if ( currentState == runStates.alarm ) {
                 currentState = runStates.run;
               }
             }
-            // write log entry
             LogEntry( currentLoc );
             // reset timer -- no need, its a recurring interval timer
           });
         } else {
-        console.log("ERROR | DoIt    | Geolocation is not supported by this browser.");
+          console.log("ERROR | DoIt    | Geolocation is not supported by this browser.");
         }
+        console.log("DEBUG | DoIt    | function exit");
       }
 
 
-      // short distances, use simple trig after converting to Minutes of arc
+      // short distances, use trig after converting to Minutes of arc
       function DandCPlane( pos1, pos2 )
       {
         console.log(`INFO  | D&C    | p1 [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] p2 [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ]`);
-        adj = cosd( pos1.latitude ); // parallel sailing adjust from lattitude when converting form arc Minutes to Nm
+        // parallel sailing adjust from lattitude when converting form arc Minutes to Nm
+        adj = cosd( pos1.latitude );
         // this will fail if crossing the prime or antimeridian
-        dlonNm = Math.abs( pos1.longitude - pos2.longitude) * 60 * adj; 
-        dlatNm = Math.abs( pos1.latitude - pos2.latitude ) * 60;
+        dlonNm = ( pos2.longitude - pos1.longitude) * 60 * adj; 
+        dlatNm = ( pos2.latitude - pos1.latitude ) * 60;
         distanceNm = Math.sqrt( dlatNm*dlatNm + dlonNm*dlonNm ); 
         bearing = Math.acos(dlatNm/distanceNm)/dtr;
+        // calc using other methods 
         bearing2 = Math.asin(dlonNm/distanceNm)/dtr;
         // OR get bearing first the distance
         bearing3 = atand( dlatNm / dlonNm );
         dist2 = dlonNm / sind( bearing3 );
         dist3 = dlatNm / cosd( bearing3 );
+
         // adjust bearing for quadrant
-        bearing  = adjustForQuadrant( pos1, pos2, bearing );
-        bearing2 = adjustForQuadrant( pos1, pos2, bearing2);
-        bearing3 = adjustForQuadrant( pos1, pos2, bearing3);
+        if ( quadrant > 2 ) bearing = 360 - bearing;
         console.log(`INFO  | D&C    | All NM ->( dlon: ${dlonNm.toFixed(4)} dlat: ${dlatNm.toFixed(4)} ) Latadj: ${adj.toFixed(4)}
                | brg: ${bearing.toFixed(0)} brg2: ${bearing2.toFixed(0)} brg3: ${bearing2.toFixed(0)}
                | dist: ${distanceNm.toFixed(2)} dist2: ${dist2.toFixed(2)} dist3: ${dist3.toFixed(2)}`);
@@ -698,19 +836,19 @@
       }
 
       // est where we should have been after this distance
-      function CalcEstPosition( pos1, distNm, brg )
+      function CalcEstPosition( pos1, distNm, berg )
       {
-        var pos2 = { latitude: 0, longitude: 0 };
+        const pos2 = { latitude: 0, longitude: 0 };
         // FIXME need to see if we go around the horn either way
         dist = distNm / 60;
-        dlat = dist * cosd( brg );
-        departure = dist * sind( brg );
+        dlat = dist * cosd( berg );
+        departure = dist * sind( berg );
         dlon = departure / cosd( pos1.latitude )  // should be m-lat but close enough
         // cos & sin return correct sign (+/-) , so just add
-          pos2.latitude = pos1.latitude + dlat;
-          pos2.longitude = pos1.longitude + dlon;
-        console.log(`INFO  | CEP    | pp [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm.toFixed(2)} brg: ${brg}`);
-        console.log(`INFO  | CEP    | ep [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ]`);
+        pos2.latitude = pos1.latitude + dlat;
+        pos2.longitude = pos1.longitude + dlon;
+        console.log(`INFO  | CEP    | pp [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm.toFixed(2)} brg: ${berg.toFixed(0)}`);
+        console.log(`INFO  | CEP    | ep [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ] brg type: ${typeof(berg)} ]`);
         return( pos2 );
       }
 
@@ -735,108 +873,42 @@ function atand(x)
 return Math.atan(x)/dtr;
 }
 
-function adjustForQuadrant( pos1, pos2, brg )
+// these 2 used in runMain, when setting up 
+function hemiFromLoc( pos )
 {
+  // FIXME this is only North&East - no seems to be ok for all, why? 
+  if ( pos.latitude > 0 ) {
+      if ( pos.longitude > 0 ) {
+          hemi = "NE"; // NE
+      } else {
+          hemi = "NW"; // NW
+      }
+  } else {
+      if ( pos.longitude > 0 ) {
+          hemi = "SE"; // SE
+      } else {
+          hemi = "SW"; // SW
+      }
+  }
+  return hemi;
+}
 
-  // FIXME this is only North&East
+function quadFromLoc( pos1, pos2 )
+{
   if ( pos1.latitude > pos2.latitude ) { gNorth = false; }
   else { gNorth = true; }
   if ( pos1.longitude > pos2.longitude ) { gEast = false; }
   else { gEast = true; }
 
-  // this holds for all quadrants
-  if ( gNorth ) { if ( gEast ) { ; }         // NE do nothing
-                  else { brg = 360 - brg; }  // NW 360-θ
-  } else if ( gEast ) { brg = 180 - brg; }   // SE 180-θ
-         else { brg = 180 + brg }            // SW 180+θ
-  return brg;
-}
-
-// find quadrant
-function quadrantIs( brg )
-{
-  var quadrant;
-       if (( brg <   0 ) & ( brg >  90 )) quadrant = 1;
-  else if (( brg >  90 ) & ( brg < 180 )) quadrant = 2;
-  else if (( brg > 180 ) & ( brg < 270 )) quadrant = 3;
-  else if (( brg > 270 ) & ( brg < 360 )) quadrant = 4;
-  else quadrant = 0;  // Error, brg out of range 0-360
-  return( quadrant );  
-}
-
-// Add or Subtract deltas
-// there are 16 cases here, only dealing with 2
-// replace with look up table
-function AddOrSubtract( pos1, pos2 )
-{
-  const addLat = true, addLon = true;
-  if (( pos1.latitude > 0 ) & ( pos2.latitude > 0 )) {
-    // both north
-    if ( pos1.latitude < pos2.latitude ){
-      // subtract latitude
-      addLat = false;
-    } else {
-      // add latitude
-      addLat = true;
-    }
-  } else {
-    // yikes, crossed the equator
+  if ( gNorth ) {
+    if ( gEast ) { quad = 1; } // NE 
+    else { quad = 4; }         // NW
   }
-  if (( pos1.longitude > 0 ) & ( pos2.longitude > 0 )) {
-    // both East
-    if ( pos1.longitude > pos2.longitude ){
-      addLon = false; // subtract longitude
-    } else {
-      addLon = true; // add longitude
-    }
-  } else {
-    if (( pos1.longitude < 0 ) & ( pos2.longitude < 0 )) {
-      // both West
-      if ( pos1.longitude < pos2.longitude ){
-        addLon = true; // add longitude
-      } else {
-        addLon = false; // subtract longitude
-      }
-    } else {
-      // yikes, crossed prime meridian or the antieridian
-    }
+  else {
+    if ( gEast ) { quad = 2; } // SE
+    else { quad = 3; }         // SW
   }
-  return{ alat: addLat, alon: addLon };
-}
-
-// Normalize latitude
-function norm_90_deg(x)
-{
-while (x<0) {
-x+=90;
-}
-return x%90;
-}
-
-// Normalize longitude
-function norm_180_deg(x)
-{
-while (x<0) {
-x+=180;
-}
-return x%180;
-}
-
-//Normalize large angles
-function norm_360_deg(x)
-{
-while (x<0) {
-x+=360;
-}
-return x%360;
-}
-
-// grr, can't do this in a function the return call chops off the leading space !!!!!
-function getTimeStr( time )
-{
-  min = time%60;
-  hrAndMin  = Math.trunc(time/60).toString().padStart(2, " ") +":" + min.toString().padStart(2, "0");
-  return hrAndMin;
+  return quad;
 }
 
 // Logging stuff - well formatted logs are easy to understand
@@ -854,17 +926,17 @@ function LogEntry( loc )
           distEl = deltaD.toFixed(1).toString().padStart(5, " " );
         }
         // Lat/Lon DDD.dddd 
-        lat = PadNumber(loc.latitude, 3, 4);
-        lon = PadNumber(loc.longitude, 3, 4);
+        lat = PadNumber(loc.latitude, 4, 4);
+        lon = PadNumber(loc.longitude, 4, 4);
         //console.log( "|" + lat +"|"+ lon +"|" );
         // hdg / cse  DDD    
         hdg = PadNumber(heading, 3, 0);
         cse = PadNumber(course, 3, 0 );
         //console.log( "hdg:" + hdg +"cse:" +  cse );
         // dont use `${timeStr}`  as strings get turned back into numbers 
-        const line1 = "|"+timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte.toString().padStart(3, " ")+"|\n" +
-                      "|"+currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError.toString().padStart(3, " ")+"|\n" +
-                      "|-----|------------|-------|--------|-------|\n";
+        const line1 = "|"+timeStr +"|Lat:"+lat+"|hdg:"+hdg+"|dt:"+timeEl+"|xte:"+xte.toFixed().toString().padStart(3, " ")+"|\n" +
+                      "|"+currentState+"|Lon:"+lon+"|cse:"+cse+"|dd:"+distEl+"| ce:"+cseError.toFixed().toString().padStart(3, " ")+"|\n" +
+                      "|-----|-------------|-------|--------|-------|\n";
         
         // prepend message so most recent at top
         var logText = document.getElementById('logTextArea');
@@ -908,13 +980,14 @@ function PadNumber( num, pre, places )
     default: shift = 100; break;
   }
   iPart = Math.trunc(num);
-  fPart = Math.trunc(( num - iPart ) * shift); 
+  fPart = Math.abs( Math.trunc(( num - iPart ) * shift)); 
   fPartStr = fPart.toString();
   fPartPadded = fPartStr.padStart(places, "0");
 
   iPartStr = iPart.toString();
   iPartPadded = iPartStr.padStart(pre, " ");
   // recombine and sent it home
+  // FIXME this test was failing with -ve numbers so abs the fraction part, why test ?
   if( fPart > 0 ) outStr = iPartPadded + "." + fPartPadded;
   else outStr = iPartPadded;
   return( outStr );
@@ -927,7 +1000,7 @@ function PadNumber( num, pre, places )
 <body bgcolor="#7dfdfe" onload="StartApp()">
   
 <h1 id="versionString">Offcourse Alarm</h1> 
-<div id="MainPage" width=320px >
+<div id="MainPage" width=400px >
 <table border="0">
   <tbody>
   <tr>
@@ -936,7 +1009,7 @@ function PadNumber( num, pre, places )
     <td><button onclick="OffMain()"     class="majorButton" id="OffButton">&nbsp;OFF&nbsp;</button></td>
   </tr>
   <tr>
-    <td><output id="z"  class="statusBar"></td>
+    <td><div class="box" ><div class="red led" id="statusLed" ></div><output id="z"  class="statusBar"></div></td>
     <td><output id="z1" class="statusBar"></td>
     <td><output id="z2" class="statusBar"></td>
   </tr>
@@ -960,12 +1033,10 @@ function PadNumber( num, pre, places )
     <td><output id="course"   class="outData"></td>
     <td><output id="cseEMain" class="outData"></td>
   </tr>
-  </tr>
   <tr>
-  <tr>
-  <td><button onclick="DisplaySettings()" class="minorButton2">Settings</button></td>
-  <td><button onclick="DisplayLog()"      class="minorButton">Log</button></td>
-  <td><button onclick="Reset()"           class="majorButton" id="ResetButton">Reset</button></td>
+    <td><button onclick="DisplaySettings()" class="minorButton2">Settings</button></td>
+    <td><button onclick="DisplayLog()"      class="minorButton">Log</button></td>
+    <td><button onclick="Reset()"           class="majorButton" id="ResetButton">Reset</button></td>
   </tr>
   </tbody>
 </table>
@@ -1019,20 +1090,24 @@ function PadNumber( num, pre, places )
   </tbody>
 </table>
 </div>
-<p>This is pretty simple:</p>
 <div id="demoParms" >
-<button onclick="DemoPref()"    class="minorButton">Demo</button><br>
-<label for="initCse"> cse spd dur </label><br>
-<label for="initCse">init</label>
+<!-- <button onclick="DemoPref()"    class="minorButton">Demo</button><br> -->
+<a>init CSE:</a>
 <input type="text" id="initcse" name="initcse" size="4">
+<a>SPD:</a>
 <input type="text" id="initspd" name="initspd" size="4">
+<a>DUR:</a>
 <input type="text" id="initdur" name="initdur" size="4"><br>
-<label for="initCse">subs</label>
+<label for="initCse">subs CSE:</label>
 <input type="text" id="subscse" name="subscse" size="4">
-<input type="text" id="subsspd" name="subsspd" size="4"><br>
+<a>SPD:</a>
+<input type="text" id="subsspd" name="subsspd" size="4">
+<a>HEMI:</a>
+<input type="text" id="hemisp" name="hemisp" size="4"><br>
 </div>
+<div id="help">
 <ol>
-  <li>Press <b>Stby</b> to capture an subsial position.</li>
+  <li>Press <b>Stby</b> to capture an initial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
   <li>review <b>Settings</b> for desired checking interval and off-course bearing and xte limit.</li>
   <li>press <b>Run</b> to capture the current position. A heading will be calculated and a timer started.</li>
@@ -1041,5 +1116,5 @@ function PadNumber( num, pre, places )
   <li><b>Reset</b> the alarm will stop the noise BUT if the alarm condition still exists it will trigger again next check.</li>
   <li>You can either change <b>Settings</b>, go to <b>Stby</b> or turn <b>OFF</b></li>
 </ol>
-
+</div>
 </body></html>
