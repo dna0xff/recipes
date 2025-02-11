@@ -4,9 +4,9 @@
   <head>
     <title>Off course alarm testing</title>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <meta name="viewport" content="width=340, user-scalable=yes, initial-scale=1">
+    <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
     <style>
-    html { background-color: papayawhip; } body { min-height: 100vh; max-width: 340px; background-color: #7DFDFE; margin: 0 auto; }
+    /*html { background-color: papayawhip; } body { min-height: 100vh; max-width: 340px; background-color: #7DFDFE; margin: 0 auto; } */
       :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
               --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
       h1 { color: blue; font-size: 24px; }
@@ -16,21 +16,21 @@
       .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 8px; text-align: center; }
 
       .noHover { padding: 12px 24px; background: var(--grey-button); color: #8f8d8a;
-               font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+               font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
                border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
 
       /* the real McCoy  don't specify border: none; it kills the click effect */
       .majorButton { padding: 12px 24px; background: var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+                     font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
                      border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
       .majorButton:hover { outline-offset: 2px; } 
       .minorButton { padding: 9px 18px; background: var(--minor-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+                     font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
                      border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
       .minorButton:hover { outline-offset: 1px; } 
                      /* for settings, its a long word */
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
-                     font-size: 16px; font-weight: bold; margin: 4px; margin-top: 20px;
+                     font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
                       border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
 
@@ -40,11 +40,8 @@
 
 .box { height: 24px; float: left; display: flex; flex-direction: row; }
 .green { background-image: -webkit-linear-gradient(top, #13fB04 0%, #58e343 50%, #ADED99 100%); }
-
 .orange { background-image: -webkit-linear-gradient(top, #f9a004 0%, #e0ac45 50%, #ead698 100%); }
-
-.red { background-image: -webkit-linear-gradient(top, #fb1304 0%, #e35843 50%, #edad99 100%);
-    animation: blinkRed 1.5s infinite; }
+.red { background-image: -webkit-linear-gradient(top, #fb1304 0%, #e35843 50%, #edad99 100%); animation: blinkRed 1.5s infinite; }
 
 @keyframes blinkRed {
     from { background-color: #F00; }
@@ -74,19 +71,12 @@
     -webkit-border-bottom-left-radius: 4px 3px;
     background-image: -webkit-linear-gradient(top, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 100%);
 }
-
-.led-box {
-  height: 24;
-  width: 24;
-  margin: 0px 0;
-  float: left;
-}
     </style>
     <script type="text/javascript">
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.07"
+      var version = "0.08"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
@@ -184,14 +174,15 @@
           // FIXME going to need to disable everything and just display some info
           return;
         }
-        document.getElementById("MainPage").style.width = "340px"; 
+        document.getElementById("MainPage").style.width = "400px"; 
         // get a bunch of object id's once so we dont do it multiple times 
         // interesting, this is a hack to reuse previously retreived Id's 
         // works ok as is but if used with backgroundColor and explicit values, flags a runtime error
         // but when used with the color table below is Ok !! go figure.
         objectId.main =  document.getElementById("MainPage");
-        objectId.set =   document.getElementById("Settings");
-        objectId.log =   document.getElementById("Log");
+        objectId.set  =  document.getElementById("Settings");
+        objectId.log  =  document.getElementById("Log");
+        objectId.demo =  document.getElementById("Demo");
 
         // get our colors from the css
         const root   = document.querySelector(':root');
@@ -216,10 +207,14 @@
           document.getElementById("subscse").value = subsDir;
           document.getElementById("subsspd").value = subsSpeed;
           document.getElementById("hemisp").value = hemiSphere;
+          objectId.demo.style.display="block";
           // do this later, when user has tweaked the inputs
           // calcOffsets();
         // console.log = function(){};
-        } else { console.log = function(){}}
+        } else {
+            objectId.demo.style.display="none";
+            console.log = function(){};
+        }
       }
 
 // this function throws an exception when called from timer callback
@@ -1081,7 +1076,7 @@ function PadNumber( num, pre, places )
     <td><legend>Log</legend></td>
   </tr>
   <tr>
-    <textarea id="logTextArea" rows="20" cols="40" width="420"></textarea>
+    <textarea id="logTextArea" rows="20" cols="46"></textarea>
   </tr>
   <tr>
    <td><button onclick="DisplayMain()" class="minorButton">Done</button></td>
@@ -1090,20 +1085,19 @@ function PadNumber( num, pre, places )
   </tbody>
 </table>
 </div>
-<div id="demoParms" >
-<!-- <button onclick="DemoPref()"    class="minorButton">Demo</button><br> -->
-<a>init CSE:</a>
-<input type="text" id="initcse" name="initcse" size="4">
+<div id="Demo">
+<a>init  CSE:</a>
+<input type="text" id="initcse" name="initcse" size="3">
 <a>SPD:</a>
-<input type="text" id="initspd" name="initspd" size="4">
+<input type="text" id="initspd" name="initspd" size="3">
 <a>DUR:</a>
-<input type="text" id="initdur" name="initdur" size="4"><br>
-<label for="initCse">subs CSE:</label>
-<input type="text" id="subscse" name="subscse" size="4">
+<input type="text" id="initdur" name="initdur" size="3"><br>
+<a>subs CSE:</a>
+<input type="text" id="subscse" name="subscse" size="3">
 <a>SPD:</a>
-<input type="text" id="subsspd" name="subsspd" size="4">
+<input type="text" id="subsspd" name="subsspd" size="3">
 <a>HEMI:</a>
-<input type="text" id="hemisp" name="hemisp" size="4"><br>
+<input type="text" id="hemisp" name="hemisp" size="3"><br>
 </div>
 <div id="help">
 <ol>
