@@ -6,39 +6,55 @@
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
     <style>
-    /*html { background-color: papayawhip; } body { min-height: 100vh; max-width: 340px; background-color: #7DFDFE; margin: 0 auto; } */
+      #MainPage { display: grid; grid-template-columns: 33% 33% 33%; }
+      #Settings {  display: grid; grid-template-columns: 45% 20% auto ; }
+      .setTxt { grid-column: 1 / span 3; }
+      #Log {  display: grid; grid-template-columns: auto auto; }
+      #logtext { grid-column: 1 / span 3; }
+      #DemoParms {  display: grid; grid-template-columns: auto auto auto auto auto auto; }
+
+    @media screen and (max-width: 600px) {
+.TestmajorButton { var(--main-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 100%;
+}
+        }
+    @media screen and (min-width: 601px) { 
+.TestmajorButton { var(--main-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 40%;
+}
+    }
+    body { max-width: 410px }
       :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
               --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
-      h1 { color: blue; font-size: 24px; }
-      .outData { padding: 6px 20px; margin-bottom: 20px; line-height: normal; width: 30%;
-                 color: var(--main-text); border-radius: 4px; font-size: 18px; font-weight: bold; }
+      h1 { color: blue; font-size: 20px; }
+      .outData { padding: 6px 16px; margin-bottom: 20px; line-height: normal;
+                 color: var(--main-text); border-radius: 4px; font-size: 28px; font-weight: bold; }
       .setOut { color: var(--main-text); font-size: 16px; font-weight: bold; }
-      .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 8px; text-align: center; }
+      .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 4px; text-align: left; }
 
-      .noHover { padding: 12px 24px; background: var(--grey-button); color: #8f8d8a;
-               font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
+      .noHover { padding: 12px 12px; background: var(--grey-button); color: #8f8d8a;
+               font-size: 16px; font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
 
       /* the real McCoy  don't specify border: none; it kills the click effect */
-      .majorButton { padding: 12px 24px; background: var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
+      .majorButton { padding: 12px 12px; background: var(--main-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                      border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
       .majorButton:hover { outline-offset: 2px; } 
-      .minorButton { padding: 9px 18px; background: var(--minor-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
+      
+      .minorButton { padding: 9px 10px; background: var(--minor-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                      border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
       .minorButton:hover { outline-offset: 1px; } 
                      /* for settings, its a long word */
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
-                     font-size: 16px; font-weight: bold; margin: 18px; margin-top: 20px;
+                     font-size: 16px; font-weight: bold;  margin: 10%; margin-top: 20px; 
                       border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
 
-      legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px;}
+      legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px; width: 140px; }
 
-      Form { display: none; }
-
-.box { height: 24px; float: left; display: flex; flex-direction: row; }
+.box { display: flex; flex-direction: row; }
 .green { background-image: -webkit-linear-gradient(top, #13fB04 0%, #58e343 50%, #ADED99 100%); }
 .orange { background-image: -webkit-linear-gradient(top, #f9a004 0%, #e0ac45 50%, #ead698 100%); }
 .red { background-image: -webkit-linear-gradient(top, #fb1304 0%, #e35843 50%, #edad99 100%); animation: blinkRed 1.5s infinite; }
@@ -54,12 +70,12 @@
     width: 10px;
     height: 10px;
     box-shadow: 0px 0px 3px black;
-    margin: 4px;
+    margin: 8px;
     zoom: 0;
 }
 
 .led:after {
-    display: block;
+    display: inline;
     content: '';
     margin-left: 1px;
     margin-right: 1px;
@@ -72,11 +88,12 @@
     background-image: -webkit-linear-gradient(top, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 100%);
 }
     </style>
+
     <script type="text/javascript">
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.08"
+      var version = "0.09"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
@@ -174,7 +191,7 @@
           // FIXME going to need to disable everything and just display some info
           return;
         }
-        document.getElementById("MainPage").style.width = "400px"; 
+        document.getElementById("MainPage").style.width = "100%"; 
         // get a bunch of object id's once so we dont do it multiple times 
         // interesting, this is a hack to reuse previously retreived Id's 
         // works ok as is but if used with backgroundColor and explicit values, flags a runtime error
@@ -182,7 +199,7 @@
         objectId.main =  document.getElementById("MainPage");
         objectId.set  =  document.getElementById("Settings");
         objectId.log  =  document.getElementById("Log");
-        objectId.demo =  document.getElementById("Demo");
+        objectId.demo =  document.getElementById("DemoParms");
 
         // get our colors from the css
         const root   = document.querySelector(':root');
@@ -207,7 +224,7 @@
           document.getElementById("subscse").value = subsDir;
           document.getElementById("subsspd").value = subsSpeed;
           document.getElementById("hemisp").value = hemiSphere;
-          objectId.demo.style.display="block";
+          objectId.demo.style.display="grid";
           // do this later, when user has tweaked the inputs
           // calcOffsets();
         // console.log = function(){};
@@ -267,15 +284,15 @@
           case screen.main: 
             objectId.set.style.display="none";
             objectId.log.style.display="none";
-            objectId.main.style.display="block";
+            objectId.main.style.display="grid";
             break;
           case screen.log:
             objectId.set.style.display="none";
-            objectId.log.style.display="block";
+            objectId.log.style.display="grid";
             objectId.main.style.display="none";
             break;
           case screen.settings:
-            objectId.set.style.display="block";
+            objectId.set.style.display="grid";
             objectId.log.style.display="none";
             objectId.main.style.display="none";
             break;
@@ -995,109 +1012,62 @@ function PadNumber( num, pre, places )
 <body bgcolor="#7dfdfe" onload="StartApp()">
   
 <h1 id="versionString">Offcourse Alarm</h1> 
+
 <div id="MainPage" width=400px >
-<table border="0">
-  <tbody>
-  <tr>
-    <td><button onclick="RunMain()"     class="majorButton" id="RunButton">&nbsp;&nbsp;Run&nbsp;&nbsp;</button></td>
-    <td><button onclick="StandbyMain()" class="majorButton" id="StandbyButton">&nbsp;Stby&nbsp;</button></td>
-    <td><button onclick="OffMain()"     class="majorButton" id="OffButton">&nbsp;OFF&nbsp;</button></td>
-  </tr>
-  <tr>
-    <td><div class="box" ><div class="red led" id="statusLed" ></div><output id="z"  class="statusBar"></div></td>
-    <td><output id="z1" class="statusBar"></td>
-    <td><output id="z2" class="statusBar"></td>
-  </tr>
-  <tr>
-    <td><legend>ΔTime  </legend></td>
-    <td><legend>Heading</legend></td>
-    <td><legend>XTE    </legend></td>
-  </tr>
-  <tr>
-    <td><output id="deltaT"  class="outData"></td>
-    <td><output id="heading" class="outData"></td>
-    <td><output id="xteMain" class="outData"></td>
-  </tr>
-  <tr>
-    <td><legend>ΔDistance</legend></td>
-    <td><legend>Course   </legend></td>
-    <td><legend>CseE     </legend></td>
-  </tr>
-  <tr>
-    <td><output id="deltaD"   class="outData"></td>
-    <td><output id="course"   class="outData"></td>
-    <td><output id="cseEMain" class="outData"></td>
-  </tr>
-  <tr>
-    <td><button onclick="DisplaySettings()" class="minorButton2">Settings</button></td>
-    <td><button onclick="DisplayLog()"      class="minorButton">Log</button></td>
-    <td><button onclick="Reset()"           class="majorButton" id="ResetButton">Reset</button></td>
-  </tr>
-  </tbody>
-</table>
+  <div><button onclick="RunMain()"     class="majorButton" id="RunButton">&nbsp;&nbsp;Run&nbsp;&nbsp;</button></div>
+  <div><button onclick="StandbyMain()" class="majorButton" id="StandbyButton">&nbsp;Stby&nbsp;</button></div>
+  <div><button onclick="OffMain()"     class="majorButton" id="OffButton">&nbsp;OFF&nbsp;</button></div>
+  <div class="box" ><div class="red led" id="statusLed" ></div><div><output id="z"  class="statusBar"></div></div>
+  <div><output id="z1" class="statusBar"></div>
+  <div><output id="z2" class="statusBar"></div>
+  <div><legend>ΔTime  </legend></div>
+  <div><legend>Heading</legend></div>
+  <div><legend>XTE    </legend></div>
+  <div><output id="deltaT"  class="outData"></div>
+  <div><output id="heading" class="outData"></div>
+  <div><output id="xteMain" class="outData"></div>
+  <div><legend>ΔDistance</legend></div>
+  <div><legend>Course   </legend></div>
+  <div><legend>CseE     </legend></div>
+  <div><output id="deltaD"   class="outData"></div>
+  <div><output id="course"   class="outData"></div>
+  <div><output id="cseEMain" class="outData"></div>
+  <div><button onclick="DisplaySettings()" class="minorButton">Settings</button></div>
+  <div><button onclick="DisplayLog()"      class="minorButton">Log</button></div>
+  <div><button onclick="Reset()"           class="majorButton" id="ResetButton">Reset</button></div>
 </div>
+
 <div id="Settings">
-<table border="0">
-  <tbody>
-  <tr>
-    <td><legend>Settings</legend> </td>
-  </tr>
-  <tr>
-    <td><legend>Check duration (minutes)</legend></td>
-  </tr>
-  <tr>
-    <td><input type="range" id="checkTime" name="a" value="5" min="5" max="60" step="5" oninput="OutTChg()"></td>
-    <td><output id="x" class="setOut" value="0"></td>
-  </tr>
-  <tr>
-    <td><legend>Off Course Limit (Degrees)</legend></td>
-  </tr>
-  <tr>
-    <td><input type="range" id="acVar" value="5" min="5" max="60" step="5" oninput="OutCChg()"></td>
-    <td><output id="y" class="setOut"></td>
-  </tr>
-  <tr>
-    <td><legend>Cross track Limit (metres)</legend></td>
-  </tr>
-  <tr>
-    <td><input type="range" id="xtVar" value="500" min="200" max="1000" step="50" oninput="OutXChg()"></td>
-    <td><output id="y2" class="setOut"></td>
-  </tr>
-  <tr>
-    <td><button onclick="UpdateSettings()" class="minorButton">Done</button></td>
-  </tr>
-  </tbody>
-</table>
+    <div class="setTxt" ><legend>Settings</legend></div>
+    <div class="setTxt" ><legend>Check duration (minutes)</legend></div>
+    <div><input type="range" id="checkTime" name="a" value="5" min="5" max="60" step="5" oninput="OutTChg()"></div>
+    <div><output id="x" class="setOut" value="0"></div>
+    <div class="setTxt" ><legend>Off Course Limit (Degrees)</legend></div>
+    <div><input type="range" id="acVar" value="5" min="5" max="60" step="5" oninput="OutCChg()"></div>
+    <div><output id="y" class="setOut"></div>
+    <div class="setTxt" ><legend>Cross track Limit (metres)</legend></div>
+    <div><input type="range" id="xtVar" value="500" min="200" max="1000" step="50" oninput="OutXChg()"></div>
+    <div><output id="y2" class="setOut"></div>
+    <div><button onclick="UpdateSettings()" class="minorButton2">Done</button></div>
 </div>
 <div id="Log">
-<table border="0">
-  <tbody>
-  <tr>
-    <td><legend>Log</legend></td>
-  </tr>
-  <tr>
-    <textarea id="logTextArea" rows="20" cols="46"></textarea>
-  </tr>
-  <tr>
-   <td><button onclick="DisplayMain()" class="minorButton">Done</button></td>
-   <td><button onclick="ClearLog()"    class="minorButton">Clear</button></td>
-  </tr>
-  </tbody>
-</table>
+  <div id="logtxt"><textarea id="logTextArea" rows="20" cols="46"></textarea></div>
+  <div id="logbut"><button onclick="DisplayMain()" class="minorButton2">Done</button></div>
+  <div id="logbut"><button onclick="ClearLog()"    class="minorButton2">Clear</button></div>
 </div>
-<div id="Demo">
-<a>init  CSE:</a>
-<input type="text" id="initcse" name="initcse" size="3">
-<a>SPD:</a>
-<input type="text" id="initspd" name="initspd" size="3">
-<a>DUR:</a>
-<input type="text" id="initdur" name="initdur" size="3"><br>
-<a>subs CSE:</a>
-<input type="text" id="subscse" name="subscse" size="3">
-<a>SPD:</a>
-<input type="text" id="subsspd" name="subsspd" size="3">
-<a>HEMI:</a>
-<input type="text" id="hemisp" name="hemisp" size="3"><br>
+<div id="DemoParms">
+  <div>init  CSE:</div>
+  <div><input type="text" id="initcse" name="initcse" size="3"></div>
+  <div>SPD:</div>
+  <div><input type="text" id="initspd" name="initspd" size="3"></div>
+  <div>DUR:</div>
+  <div><input type="text" id="initdur" name="initdur" size="3"></div>
+  <div>subs CSE:</div>
+  <div><input type="text" id="subscse" name="subscse" size="3"></div>
+  <div>SPD:</div>
+  <div><input type="text" id="subsspd" name="subsspd" size="3"></div>
+  <div>HEMI:</div>
+  <div><input type="text" id="hemisp" name="hemisp" size="3"></div>
 </div>
 <div id="help">
 <ol>
