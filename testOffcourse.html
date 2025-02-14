@@ -7,26 +7,27 @@
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
     <style>
       #MainPage { display: grid; grid-template-columns: 33% 33% 33%; }
-      #Settings {  display: grid; grid-template-columns: 45% 20% auto ; }
-      .setTxt { grid-column: 1 / span 3; }
-      #Log {  display: grid; grid-template-columns: auto auto; }
+      #Settings {  display: grid; grid-template-columns: 45% auto ; }
+      .setTxt { grid-column: 1 / span 2; }
+      #Log {  display: grid; grid-template-columns: auto; }
       #logtext { grid-column: 1 / span 3; }
       #DemoParms {  display: grid; grid-template-columns: auto auto auto auto auto auto; }
 
+/* my phone width comes in at 980 or 420 depending where from?? */
     @media screen and (max-width: 600px) {
-.TestmajorButton { var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 100%;
-}
+      .TestmajorButton { var(--main-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 100%; }
+      body { max-width: 960px }
         }
     @media screen and (min-width: 601px) { 
-.TestmajorButton { var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 40%;
-}
+      .TestmajorButton { var(--main-button); color: white;
+                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 40%; }
+      body { max-width: 410px }
     }
-    body { max-width: 410px }
       :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
               --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
       h1 { color: blue; font-size: 20px; }
+      /* cannot align output object text */
       .outData { padding: 6px 16px; margin-bottom: 20px; line-height: normal;
                  color: var(--main-text); border-radius: 4px; font-size: 28px; font-weight: bold; }
       .setOut { color: var(--main-text); font-size: 16px; font-weight: bold; }
@@ -54,7 +55,9 @@
 
       legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px; width: 140px; }
 
-.box { display: flex; flex-direction: row; }
+.rowbox { display: flex; flex-direction: row; }
+#testButtons > div { padding: 10px; }
+#minorButtons > div { padding: 10px; }
 .green { background-image: -webkit-linear-gradient(top, #13fB04 0%, #58e343 50%, #ADED99 100%); }
 .orange { background-image: -webkit-linear-gradient(top, #f9a004 0%, #e0ac45 50%, #ead698 100%); }
 .red { background-image: -webkit-linear-gradient(top, #fb1304 0%, #e35843 50%, #edad99 100%); animation: blinkRed 1.5s infinite; }
@@ -416,6 +419,21 @@
       {
         x = document.getElementById("x");
         x.value = document.getElementById("checkTime" ).value;
+      }
+
+// reduce to one function with elementID as arg
+      function ShowHelp()
+      {
+        item = document.getElementById("help");
+        if ( item.style.display == "block" ) item.style.display = "none";
+        else item.style.display = "block";
+      }
+
+      function ShowDemo()
+      {
+        item = document.getElementById("DemoParms");
+        if ( item.style.display == "grid" ) item.style.display = "none";
+        else item.style.display = "grid";
       }
 
       // Settings done button, see if anything has changes then apply it 
@@ -1013,25 +1031,26 @@ function PadNumber( num, pre, places )
   
 <h1 id="versionString">Offcourse Alarm</h1> 
 
-<div id="MainPage" width=400px >
+<!-- <div id="MainPage" width=400px > -->
+<div id="MainPage">
   <div><button onclick="RunMain()"     class="majorButton" id="RunButton">&nbsp;&nbsp;Run&nbsp;&nbsp;</button></div>
   <div><button onclick="StandbyMain()" class="majorButton" id="StandbyButton">&nbsp;Stby&nbsp;</button></div>
   <div><button onclick="OffMain()"     class="majorButton" id="OffButton">&nbsp;OFF&nbsp;</button></div>
-  <div class="box" ><div class="red led" id="statusLed" ></div><div><output id="z"  class="statusBar"></div></div>
+  <div class="rowbox" ><div class="red led" id="statusLed" ></div><div><output id="z"  class="statusBar"></div></div>
   <div><output id="z1" class="statusBar"></div>
   <div><output id="z2" class="statusBar"></div>
   <div><legend>ΔTime  </legend></div>
   <div><legend>Heading</legend></div>
   <div><legend>XTE    </legend></div>
   <div><output id="deltaT"  class="outData"></div>
-  <div><output id="heading" class="outData"></div>
-  <div><output id="xteMain" class="outData"></div>
+  <div align="center"><output id="heading" class="outData"></div>
+  <div align="center"><output id="xteMain" class="outData"></div>
   <div><legend>ΔDistance</legend></div>
   <div><legend>Course   </legend></div>
   <div><legend>CseE     </legend></div>
   <div><output id="deltaD"   class="outData"></div>
-  <div><output id="course"   class="outData"></div>
-  <div><output id="cseEMain" class="outData"></div>
+  <div align="center"><output id="course"   class="outData"></div>
+  <div align="center"><output id="cseEMain" class="outData"></div>
   <div><button onclick="DisplaySettings()" class="minorButton">Settings</button></div>
   <div><button onclick="DisplayLog()"      class="minorButton">Log</button></div>
   <div><button onclick="Reset()"           class="majorButton" id="ResetButton">Reset</button></div>
@@ -1049,13 +1068,19 @@ function PadNumber( num, pre, places )
     <div><input type="range" id="xtVar" value="500" min="200" max="1000" step="50" oninput="OutXChg()"></div>
     <div><output id="y2" class="setOut"></div>
     <div><button onclick="UpdateSettings()" class="minorButton2">Done</button></div>
+    <div class="rowbox" id="testButtons">
+      <div><button onclick="ShowDemo()" class="minorButton2">Demo</button></div>
+      <div><button onclick="ShowHelp()" class="minorButton2">Help</button></div>
+    </div>
 </div>
 <div id="Log">
   <div id="logtxt"><textarea id="logTextArea" rows="20" cols="46"></textarea></div>
-  <div id="logbut"><button onclick="DisplayMain()" class="minorButton2">Done</button></div>
-  <div id="logbut"><button onclick="ClearLog()"    class="minorButton2">Clear</button></div>
+  <div class="rowbox" id="minorButtons">
+    <div id="logbut"><button onclick="DisplayMain()" class="minorButton2">Done</button></div>
+    <div id="logbut"><button onclick="ClearLog()"    class="minorButton2">Clear</button></div>
+  </div>
 </div>
-<div id="DemoParms">
+<div id="DemoParms" style="display: none;">
   <div>init  CSE:</div>
   <div><input type="text" id="initcse" name="initcse" size="3"></div>
   <div>SPD:</div>
@@ -1068,8 +1093,10 @@ function PadNumber( num, pre, places )
   <div><input type="text" id="subsspd" name="subsspd" size="3"></div>
   <div>HEMI:</div>
   <div><input type="text" id="hemisp" name="hemisp" size="3"></div>
+  <div>DEMO:</div>
+  <div><input type="checkbox" id="demoMode" checked="true"></div>
 </div>
-<div id="help">
+<div id="help" style="display: block;">
 <ol>
   <li>Press <b>Stby</b> to capture an initial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
