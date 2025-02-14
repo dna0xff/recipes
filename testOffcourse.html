@@ -7,23 +7,17 @@
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
     <style>
       #MainPage { display: grid; grid-template-columns: 33% 33% 33%; }
-      #Settings {  display: grid; grid-template-columns: 45% auto ; }
+      #Settings { display: grid; grid-template-columns: 45% auto; }
       .setTxt { grid-column: 1 / span 2; }
-      #Log {  display: grid; grid-template-columns: auto; }
+      #Log { display: grid; grid-template-columns: auto; }
       #logtext { grid-column: 1 / span 3; }
-      #DemoParms {  display: grid; grid-template-columns: auto auto auto auto auto auto; }
+      #DemoParms { display: grid; grid-template-columns: auto auto auto auto auto auto; }
 
-/* my phone width comes in at 980 or 420 depending where from?? */
-    @media screen and (max-width: 600px) {
-      .TestmajorButton { var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 100%; }
-      body { max-width: 960px }
-        }
-    @media screen and (min-width: 601px) { 
-      .TestmajorButton { var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 40%; }
-      body { max-width: 410px }
+    @media only screen and (min-width: 1000px) { 
+      .TestmajorButton { color: var(--main-button); font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 40%; }
+      body { max-width: 410px; }
     }
+    
       :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
               --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
       h1 { color: blue; font-size: 20px; }
@@ -49,7 +43,7 @@
       .minorButton:hover { outline-offset: 1px; } 
                      /* for settings, its a long word */
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
-                     font-size: 16px; font-weight: bold;  margin: 10%; margin-top: 20px; 
+                     font-size: 16px; font-weight: bold;  margin: 10%;
                       border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
 
@@ -227,10 +221,7 @@
           document.getElementById("subscse").value = subsDir;
           document.getElementById("subsspd").value = subsSpeed;
           document.getElementById("hemisp").value = hemiSphere;
-          objectId.demo.style.display="grid";
-          // do this later, when user has tweaked the inputs
-          // calcOffsets();
-        // console.log = function(){};
+          objectId.demo.style.display="none";
         } else {
             objectId.demo.style.display="none";
             console.log = function(){};
@@ -352,8 +343,8 @@
          console.log("DEBUG | setAud | audio src is: " + audio.src );
       }
 
-      // called from multiple places, on startup, when log dismissed when alarm dismissed 
-      // and when settings changes have been applied
+      // called from multiple places: on startup, when log dismissed,
+      // when alarm dismissed and when settings changes have been applied
       // so could come here in any of the run states
       function DisplayMain()
       {
@@ -385,7 +376,7 @@
         hrAndMin  = Math.trunc(deltaT/60).toString().padStart(2, "0") +":" + min.toString().padStart(2, "0");
         document.getElementById("deltaT").value = hrAndMin;
         document.getElementById("heading").value = heading.toFixed(0)+"°";
-        document.getElementById("deltaD").value = deltaD.toPrecision(3)+"nm";
+        document.getElementById("deltaD").value = deltaD.toPrecision(3)+" nm";
         document.getElementById("course").value = course.toFixed(0)+"°";
         document.getElementById("xteMain").value = xte.toFixed(0)+" m";
         document.getElementById("cseEMain").value = cseError.toFixed(0)+"°";
@@ -421,7 +412,6 @@
         x.value = document.getElementById("checkTime" ).value;
       }
 
-// reduce to one function with elementID as arg
       function ShowHelp()
       {
         item = document.getElementById("help");
