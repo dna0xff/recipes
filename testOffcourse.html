@@ -13,9 +13,19 @@
       #logtext { grid-column: 1 / span 3; }
       #DemoParms { display: grid; grid-template-columns: auto auto auto auto auto auto; }
 
+/* desktop computer */
     @media only screen and (min-width: 1000px) { 
-      .TestmajorButton { color: var(--main-button); font-size: 16px; font-weight: bold; margin: 8px; margin-top: 20px; width: 40%; }
+      .minorButton, .majorButton, .noHover, .minorButton2, .SetOut, legend { font-size: 16px; }
+      .statusBar { font-size: 12px; }
+      .outData { font-size: 28px; }
       body { max-width: 410px; }
+    }
+    /* my phone from git hosting */
+    @media only screen and (max-width: 1000px) { 
+      .majorButton, .noHover { font-size: 6vw; }
+      .minorButton, .minorButton2, legend, .setOut { font-size: 4vw; }
+      .statusBar { font-size: 3vw; }
+      .outData { font-size: 8vw; }
     }
     
       :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
@@ -23,35 +33,46 @@
       h1 { color: blue; font-size: 20px; }
       /* cannot align output object text */
       .outData { padding: 6px 16px; margin-bottom: 20px; line-height: normal;
-                 color: var(--main-text); border-radius: 4px; font-size: 28px; font-weight: bold; }
-      .setOut { color: var(--main-text); font-size: 16px; font-weight: bold; }
-      .statusBar { color: var(--main-text); font-size: 12px; font-weight: bold; margin-left: 4px; text-align: left; }
+                 color: var(--main-text); border-radius: 4px; font-weight: bold; }
+      .setOut { color: var(--main-text); font-weight: bold; }
+      .statusBar { color: var(--main-text); font-weight: bold; margin-left: 4px; text-align: left; }
+      legend { color: var(--main-text); font-weight: bold; text-align: center; margin-top: 20px; }
+      legend.settings { color: var(--main-text); font-weight: bold; text-align: left; margin-top: 20px; }
+      /* legend { color: var(--main-text); font-weight: bold; text-align: center; margin-top: 20px; width: 140px; } */
 
+        /* this is the disabled buttons */
       .noHover { padding: 12px 12px; background: var(--grey-button); color: #8f8d8a;
-               font-size: 16px; font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
+               font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
 
       /* the real McCoy  don't specify border: none; it kills the click effect */
       .majorButton { padding: 12px 12px; background: var(--main-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
+                     font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                      border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
       .majorButton:hover { outline-offset: 2px; } 
       
+      /* buttons on main screens */
       .minorButton { padding: 9px 10px; background: var(--minor-button); color: white;
-                     font-size: 16px; font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
+                     font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                      border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
       .minorButton:hover { outline-offset: 1px; } 
                      /* for settings, its a long word */
+
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
-                     font-size: 16px; font-weight: bold;  margin: 10%;
+                     font-weight: bold;  margin: 10%;
                       border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
 
-      legend { color: var(--main-text); font-size: 16px; font-weight: bold; text-align: center; margin-top: 20px; width: 140px; }
 
 .rowbox { display: flex; flex-direction: row; }
 #testButtons > div { padding: 10px; }
+#returnButtons { padding: 10px; }
 #minorButtons > div { padding: 10px; }
+
+input[type="range"] {
+  width:90%;
+}
+/* led stuff */
 .green { background-image: -webkit-linear-gradient(top, #13fB04 0%, #58e343 50%, #ADED99 100%); }
 .orange { background-image: -webkit-linear-gradient(top, #f9a004 0%, #e0ac45 50%, #ead698 100%); }
 .red { background-image: -webkit-linear-gradient(top, #fb1304 0%, #e35843 50%, #edad99 100%); animation: blinkRed 1.5s infinite; }
@@ -90,7 +111,7 @@
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.09"
+      var version = "0.10"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
@@ -376,7 +397,7 @@
         hrAndMin  = Math.trunc(deltaT/60).toString().padStart(2, "0") +":" + min.toString().padStart(2, "0");
         document.getElementById("deltaT").value = hrAndMin;
         document.getElementById("heading").value = heading.toFixed(0)+"°";
-        document.getElementById("deltaD").value = deltaD.toPrecision(3)+" nm";
+        document.getElementById("deltaD").value = deltaD.toPrecision(3)+"nm";
         document.getElementById("course").value = course.toFixed(0)+"°";
         document.getElementById("xteMain").value = xte.toFixed(0)+" m";
         document.getElementById("cseEMain").value = cseError.toFixed(0)+"°";
@@ -1047,25 +1068,25 @@ function PadNumber( num, pre, places )
 </div>
 
 <div id="Settings">
-    <div class="setTxt" ><legend>Settings</legend></div>
-    <div class="setTxt" ><legend>Check duration (minutes)</legend></div>
+    <div class="setTxt" ><legend class="settings" >Settings</legend></div>
+    <div class="setTxt" ><legend class="settings" >Check duration (minutes)</legend></div>
     <div><input type="range" id="checkTime" name="a" value="5" min="5" max="60" step="5" oninput="OutTChg()"></div>
     <div><output id="x" class="setOut" value="0"></div>
-    <div class="setTxt" ><legend>Off Course Limit (Degrees)</legend></div>
+    <div class="setTxt" ><legend class="settings" >Off Course Limit (Degrees)</legend></div>
     <div><input type="range" id="acVar" value="5" min="5" max="60" step="5" oninput="OutCChg()"></div>
     <div><output id="y" class="setOut"></div>
-    <div class="setTxt" ><legend>Cross track Limit (metres)</legend></div>
+    <div class="setTxt" ><legend class="settings" >Cross track Limit (metres)</legend></div>
     <div><input type="range" id="xtVar" value="500" min="200" max="1000" step="50" oninput="OutXChg()"></div>
     <div><output id="y2" class="setOut"></div>
-    <div><button onclick="UpdateSettings()" class="minorButton2">Done</button></div>
-    <div class="rowbox" id="testButtons">
+    <div id="returnButton"><button onclick="UpdateSettings()" class="minorButton2">Done</button></div>
+    <div class="rowbox"  id="minorButtons">
       <div><button onclick="ShowDemo()" class="minorButton2">Demo</button></div>
       <div><button onclick="ShowHelp()" class="minorButton2">Help</button></div>
     </div>
 </div>
 <div id="Log">
   <div id="logtxt"><textarea id="logTextArea" rows="20" cols="46"></textarea></div>
-  <div class="rowbox" id="minorButtons">
+  <div class="rowbox"  id="minorButtons">
     <div id="logbut"><button onclick="DisplayMain()" class="minorButton2">Done</button></div>
     <div id="logbut"><button onclick="ClearLog()"    class="minorButton2">Clear</button></div>
   </div>
