@@ -13,20 +13,26 @@
       #logtext { grid-column: 1 / span 3; }
       #DemoParms { display: grid; grid-template-columns: auto auto auto auto auto auto; }
 
-/* desktop computer */
-    @media only screen and (min-width: 1000px) { 
-      .minorButton, .majorButton, .noHover, .minorButton2, .SetOut, legend { font-size: 16px; }
-      .statusBar { font-size: 12px; }
-      .outData { font-size: 28px; }
-      body { max-width: 410px; }
-    }
-    /* my phone from git hosting */
-    @media only screen and (max-width: 1000px) { 
-      .majorButton, .noHover { font-size: 6vw; }
-      .minorButton, .minorButton2, legend, .setOut { font-size: 4vw; }
-      .statusBar { font-size: 3vw; }
-      .outData { font-size: 8vw; }
-    }
+      /* desktop computer - fix to max size & pre-set font sizes */
+      @media only screen and (min-width: 1000px) { 
+        .minorButton, .majorButton, .noHover, .minorButton2, .SetOut, legend { font-size: 16px; }
+        .statusBar { font-size: 12px;  margin-left: 12px; }
+        .outData { font-size: 28px; }
+        body { max-width: 410px; }
+        .led { border-radius: 5px; width: 10px; height: 10px; box-shadow: 0px 0px 3px black; margin: 8px; zoom: 0; }
+      }
+
+      /* my phone from git hosting */
+      @media only screen and (max-width: 1000px) { 
+        .majorButton, .noHover { font-size: 6vw; }
+        .minorButton, .minorButton2, legend, .setOut { font-size: 6vw; }
+        .statusBar { font-size: 3vw; margin-left: 3.2vw; }
+        .outData { font-size: 8vw; }
+        input [ type="text" ] { font-size: 4vw; }
+        input[type="range"] { width: 90%; margin-top: 3vw; }
+        #logTextArea { font-size: 3vw; }
+        .led { border-radius: 2vw; width: 4vw; height: 4vw; box-shadow: 0vw 0vw 1.5vw black; margin-left: 3vw; zoom: 0; }
+      }
     
       :root { --main-text: #000080; --main-button: #4CAF50; --minor-button: #CC7A8b; --grey-button: #8cb88b;
               --main-off:  #B3B3D9; --main-run: #90EE90; --main-standby:   #FBB117; --main-alarm:   #F62817; --main-err: #FFFF00; }
@@ -35,12 +41,12 @@
       .outData { padding: 6px 16px; margin-bottom: 20px; line-height: normal;
                  color: var(--main-text); border-radius: 4px; font-weight: bold; }
       .setOut { color: var(--main-text); font-weight: bold; }
-      .statusBar { color: var(--main-text); font-weight: bold; margin-left: 4px; text-align: left; }
+      .statusBar { color: var(--main-text); font-weight: bold; text-align: left; }
       legend { color: var(--main-text); font-weight: bold; text-align: center; margin-top: 20px; }
       legend.settings { color: var(--main-text); font-weight: bold; text-align: left; margin-top: 20px; }
       /* legend { color: var(--main-text); font-weight: bold; text-align: center; margin-top: 20px; width: 140px; } */
 
-        /* this is the disabled buttons */
+      /* this is the disabled buttons */
       .noHover { padding: 12px 12px; background: var(--grey-button); color: #8f8d8a;
                font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
                border-radius: 8px; outline: 2px solid Var(--main-button); outline-offset: 0px; transition: outline-offset 200ms ease; }
@@ -54,24 +60,22 @@
       /* buttons on main screens */
       .minorButton { padding: 9px 10px; background: var(--minor-button); color: white;
                      font-weight: bold; margin: 10%; margin-top: 20px; width: 80%;
-                     border-radius: 8px; outline: 1px solid var(--minor-button); cursor: pointer; } 
+                     border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton:hover { outline-offset: 1px; } 
-                     /* for settings, its a long word */
 
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
-                     font-weight: bold;  margin: 10%;
-                      border-radius: 8px; outline: 1px solid var(--minor-button); } 
+                     font-weight: bold; border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
 
 
 .rowbox { display: flex; flex-direction: row; }
+.rowbox#minorButtons { justify-content: space-evenly; }
 #testButtons > div { padding: 10px; }
-#returnButtons { padding: 10px; }
+#returnButton { padding: 10px; }
+#minorButtons { width: 80%; }
 #minorButtons > div { padding: 10px; }
 
-input[type="range"] {
-  width:90%;
-}
+
 /* led stuff */
 .green { background-image: -webkit-linear-gradient(top, #13fB04 0%, #58e343 50%, #ADED99 100%); }
 .orange { background-image: -webkit-linear-gradient(top, #f9a004 0%, #e0ac45 50%, #ead698 100%); }
@@ -83,14 +87,6 @@ input[type="range"] {
     to { background-color: #F00; }
 }
 
-.led {
-    border-radius: 5px;
-    width: 10px;
-    height: 10px;
-    box-shadow: 0px 0px 3px black;
-    margin: 8px;
-    zoom: 0;
-}
 
 .led:after {
     display: inline;
@@ -111,7 +107,7 @@ input[type="range"] {
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.10"
+      var version = "0.11"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
@@ -507,7 +503,7 @@ input[type="range"] {
         }
         changeState( runStates.standby );
         calcOffsets();
-        greenLed();
+        orangeLed();
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
@@ -560,13 +556,13 @@ input[type="range"] {
       {
         // on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
         disableButton( but.run );
-        orangeLed();
+        blinkLed();
         // FIXME spin the cursor until callback? 
         // do something to prevent user input while waiting for geo-callback
         if (navigator.geolocation) { 
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
           function locationSuccess(position) {
-            blinkLed();
+            greenLed();
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             if ( DEMO_MODE ) {
@@ -772,10 +768,10 @@ input[type="range"] {
       {
         // get current location
         if (navigator.geolocation) {  
-          // ripple
-          previousLoc.latitude = currentLoc.latitude;
-          previousLoc.longitude = currentLoc.longitude;
           navigator.geolocation.getCurrentPosition(function(position) {
+            // ripple
+            previousLoc.latitude = currentLoc.latitude;
+            previousLoc.longitude = currentLoc.longitude;
             currentLoc.latitude = position.coords.latitude;
             currentLoc.longitude = position.coords.longitude;
             console.log(`-----------------------------------------------------------------------------`);
@@ -888,7 +884,7 @@ input[type="range"] {
         // cos & sin return correct sign (+/-) , so just add
         pos2.latitude = pos1.latitude + dlat;
         pos2.longitude = pos1.longitude + dlon;
-        console.log(`INFO  | CEP    | pp [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm.toFixed(2)} brg: ${berg.toFixed(0)}`);
+        console.log(`INFO  | CEP    | ip [ lat: ${pos1.latitude.toFixed(4)} lon: ${pos1.longitude.toFixed(4)} ] distNm: ${distNm.toFixed(2)} brg: ${berg.toFixed(0)}`);
         console.log(`INFO  | CEP    | ep [ lat: ${pos2.latitude.toFixed(4)} lon: ${pos2.longitude.toFixed(4)} ] brg type: ${typeof(berg)} ]`);
         return( pos2 );
       }
