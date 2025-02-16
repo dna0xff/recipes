@@ -28,7 +28,7 @@
         .minorButton, .minorButton2, legend, .setOut { font-size: 6vw; }
         .statusBar { font-size: 3vw; margin-left: 3.2vw; }
         .outData { font-size: 8vw; }
-        input [ type="text" ] { font-size: 4vw; }
+        input[type="text"] { font-size: 3vw; }
         input[type="range"] { width: 90%; margin-top: 3vw; }
         #logTextArea { font-size: 3vw; }
         .led { border-radius: 2vw; width: 4vw; height: 4vw; box-shadow: 0vw 0vw 1.5vw black; margin-left: 3vw; zoom: 0; }
@@ -122,6 +122,9 @@
       var quadrant = 1; // adjust once bearing is known, used to determine if offsets added or subtracted 
 
       var dtr = Math.PI/180;
+      arrowStbd = '\u{2B9E}';
+      arrowPort = '\u{2B9C}';
+      arrow = " ";
       // set these to your desired default values
       var checkTime=5, accVar=5; xteVar=200;
       var initialLoc  = { latitude: 0, longitude: 0 };
@@ -169,6 +172,7 @@
           subsDir = Number( document.getElementById("subscse").value ) ;
           subsSpeed = document.getElementById("subsspd").value;
           currentHemi = document.getElementById("hemisp").value;
+          demoOrNot = document.getElementById("demoMode").checked;
 
           let drPerPeriod  = initSpeed * checkTime / 60;
           let drPerPeriod2 = subsSpeed * checkTime / 60;
@@ -184,13 +188,15 @@
           // FIXME += or just =, should be no previous value. are offsets ever signed? 
           offsets.accu.latOffAcc = testSet.latOffset;
           offsets.accu.lonOffAcc = testSet.lonOffset;
-          console.log("DEMO  | calcOff | hemisphere: " + currentHemi + " offsets [ " 
+          console.log("DEMO  | calcOff | demo: " + demoOrNot + " hemisphere: " + currentHemi + " offsets [ " 
           + offsets.init.latOffset.toFixed(4) + ", "
           + testSet.lonOffset.toFixed(4) + " ], [ "
           + offsets.subs.latOffset.toFixed(4) + ", "
           + offsets.subs.lonOffset.toFixed(4) + " ]" );
           // set hemisphere so gps loc can be tweaked to be in different hemisphere
           offsets.accu.hemisp = currentHemi;
+          if ( demoOrNot == false ) DEMO_MODE = false;
+          else DEMO_MODE = true;
         }
 
       // onload Main function
@@ -241,7 +247,7 @@
           objectId.demo.style.display="none";
         } else {
             objectId.demo.style.display="none";
-            console.log = function(){};
+            //console.log = function(){};
         }
       }
 
@@ -395,8 +401,8 @@
         document.getElementById("heading").value = heading.toFixed(0)+"°";
         document.getElementById("deltaD").value = deltaD.toPrecision(3)+"nm";
         document.getElementById("course").value = course.toFixed(0)+"°";
-        document.getElementById("xteMain").value = xte.toFixed(0)+" m";
-        document.getElementById("cseEMain").value = cseError.toFixed(0)+"°";
+        document.getElementById("xteMain").value = xte.toFixed(0)+" m ";
+        document.getElementById("cseEMain").value = cseError.toFixed(0)+"° "+arrow;
       }
 
       function ClearDisplay()
@@ -528,6 +534,9 @@
                     break;
                 }
             }
+            else {
+              console.log( "RUNNING IN REAL MODE" );
+            }
             console.log(`INFO  | StbyMain | geo callback ip [ lat ${initialLoc.latitude.toFixed(4)} lon ${initialLoc.longitude.toFixed(4)} ]`);
             // not sure if we should zero these here
             currentLoc.latitude = initialLoc.latitude;
@@ -556,8 +565,8 @@
       {
         // on phone there is quite a delay here resulting in multiple presses of the run button and disasterous results
         disableButton( but.run );
+        // blink red until the callback, letting user know position not known yet
         blinkLed();
-        // FIXME spin the cursor until callback? 
         // do something to prevent user input while waiting for geo-callback
         if (navigator.geolocation) { 
           navigator.geolocation.getCurrentPosition(locationSuccess, locationError);
@@ -602,13 +611,15 @@
             heading = dAndc.brg;
             dist = dAndc.dist;
             deltaD += dist; 
-            console.log(`INFO  | RunMain | cp [ lat${currentLoc.latitude.toFixed(4)} lon:${currentLoc.longitude.toFixed(4)} ] heading:${heading} deltaD:${deltaD} dist:${dist}`);
+            console.log(`INFO  | RunMain | cp [ lat${currentLoc.latitude.toFixed(4)} lon:${currentLoc.longitude.toFixed(4)} ] ` +
+                        `heading:${heading} deltaD:${deltaD} dist:${dist}`);
             document.getElementById("heading").value = heading.toFixed(0)+"°";
             changeState( runStates.run );
             LogEntry( currentLoc );
             // start the clock
             timeMsec = checkTime*60*1000;
             if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
+                // perhaps not less than every 30 sec? this creates a race condition if geo-loc slow
             if( checkTimerCreate < 1 ) {
              checkTimer = window.setInterval(DoIt, timeMsec);
              checkTimerCreate++;
@@ -767,8 +778,10 @@
       function DoIt()
       {
         // get current location
+        blinkLed();
         if (navigator.geolocation) {  
           navigator.geolocation.getCurrentPosition(function(position) {
+            greenLed();
             // ripple
             previousLoc.latitude = currentLoc.latitude;
             previousLoc.longitude = currentLoc.longitude;
@@ -824,6 +837,8 @@
             xte = dAndC2.dist*1800; // distance from expected location
             cseError = Math.abs( heading - course );   
             // FIXME, want to know which direction, port or stbd
+            if ( heading < course ) arrow = arrowStbd;
+            else arrow = arrowPort;
             console.log(`INFO  | DoItCb | xte: ${xte} (${xteVar}) cseError: ${cseError} (${accVar})`);
             UpdateDisplay();
             if (( cseError > accVar ) | ( xte > xteVar )) { // are we off course?
@@ -1107,12 +1122,12 @@ function PadNumber( num, pre, places )
 <ol>
   <li>Press <b>Stby</b> to capture an initial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
-  <li>review <b>Settings</b> for desired checking interval and off-course bearing and xte limit.</li>
+  <li>review <b>Settings</b> for desired check interval, off-course bearing and xte limit.</li>
   <li>press <b>Run</b> to capture the current position. A heading will be calculated and a timer started.</li>
   <li>When the timer expires  the current position will be updated and the course checked against the heading from earlier.</li>
-  <li>If am alarm condition exists, the screen will flash and the klaxon will sound.</li>
+  <li>If an alarm condition exists, the screen will flash and the klaxon will sound.</li>
   <li><b>Reset</b> the alarm will stop the noise BUT if the alarm condition still exists it will trigger again next check.</li>
-  <li>You can either change <b>Settings</b>, go to <b>Stby</b> or turn <b>OFF</b></li>
+  <li>You can either change the <b>Settings</b>, go to <b>Stby</b> or turn <b>OFF</b></li>
 </ol>
 </div>
 </body></html>
