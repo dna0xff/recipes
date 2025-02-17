@@ -30,6 +30,7 @@
         .outData { font-size: 8vw; }
         input[type="text"] { font-size: 3vw; }
         input[type="range"] { width: 90%; margin-top: 3vw; }
+        input[type="checkbox"] { width: 3vw; height: 3vw; }
         #logTextArea { font-size: 3vw; }
         .led { border-radius: 2vw; width: 4vw; height: 4vw; box-shadow: 0vw 0vw 1.5vw black; margin-left: 3vw; zoom: 0; }
       }
@@ -107,7 +108,7 @@
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.11"
+      var version = "0.12"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
       // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
@@ -122,9 +123,9 @@
       var quadrant = 1; // adjust once bearing is known, used to determine if offsets added or subtracted 
 
       var dtr = Math.PI/180;
-      arrowStbd = '\u{2B9E}';
-      arrowPort = '\u{2B9C}';
-      arrow = " ";
+      arrowStbd = '\u{276E}';
+      arrowPort = '\u{276F}';
+      arrow = "";
       // set these to your desired default values
       var checkTime=5, accVar=5; xteVar=200;
       var initialLoc  = { latitude: 0, longitude: 0 };
