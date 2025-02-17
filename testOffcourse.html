@@ -31,7 +31,7 @@
         input[type="text"] { font-size: 3vw; }
         input[type="range"] { width: 90%; margin-top: 3vw; }
         input[type="checkbox"] { width: 3vw; height: 3vw; }
-        #logTextArea { font-size: 3vw; }
+        #logTextArea { font-size: 2vw; }
         .led { border-radius: 2vw; width: 4vw; height: 4vw; box-shadow: 0vw 0vw 1.5vw black; margin-left: 3vw; zoom: 0; }
       }
     
@@ -111,7 +111,6 @@
       var version = "0.12"
 
       var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
-      // for 20 min check timevar latOffset = 0.03; lonOffset = 0.03;  // vars to fake movement for testing 0.01 is ~ 0.6nm
       // for 5 min check
       var initDir = 30; initSpeed = 5.2; initDur = 50;
       var subsDir = 34; subsSpeed = 5.2; hemiSphere = "NE"
@@ -186,7 +185,7 @@
           offsets.subs.lonOffset = pos2.longitude;
           offsets.accu.loopCount = initDur / checkTime;
           testSet = offsets.init;
-          // FIXME += or just =, should be no previous value. are offsets ever signed? 
+          // FIXME += or just =, should be no previous value. are offsets ever signed? yes they are 
           offsets.accu.latOffAcc = testSet.latOffset;
           offsets.accu.lonOffAcc = testSet.lonOffset;
           console.log("DEMO  | calcOff | demo: " + demoOrNot + " hemisphere: " + currentHemi + " offsets [ " 
@@ -385,6 +384,7 @@
       {
         console.log("DEBUG | ResetD |" );
         deltaT = deltaD = heading = course = xte = cseError = 0;
+        arrow = "";
         if( DEMO_MODE ) {
             // FIXME once the accumulated offset was moved to an object it never gets cleared
           //latOffAcc = latOffset; lonOffAcc = lonOffset;
@@ -464,7 +464,7 @@
               if ( currentState == runStates.run ) {
                 // set interval timer min*60*1000 msec timer
                 timeMsec = checkTime*60*1000;
-                if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
+                if( DEMO_MODE ) timeMsec = checkTime*10*1000; // fire every checkTime seconds not minutes
                 checkTimer = window.setInterval(DoIt, timeMsec);
                 checkTimerCreate++;
                 if ( checkTimerCreate > 1 ) console.log("ERROR: UpdateSettings Multiple check timers running");
@@ -611,7 +611,9 @@
             //ResetData();
             heading = dAndc.brg;
             dist = dAndc.dist;
-            deltaD += dist; 
+            // FIXME - should just set here not increment? or zero 
+            // this represents the distance traveled between going to standby and hitting run.
+            deltaD = dist; 
             console.log(`INFO  | RunMain | cp [ lat${currentLoc.latitude.toFixed(4)} lon:${currentLoc.longitude.toFixed(4)} ] ` +
                         `heading:${heading} deltaD:${deltaD} dist:${dist}`);
             document.getElementById("heading").value = heading.toFixed(0)+"°";
@@ -619,7 +621,7 @@
             LogEntry( currentLoc );
             // start the clock
             timeMsec = checkTime*60*1000;
-            if( DEMO_MODE ) timeMsec = checkTime*1000; // fire every checkTime seconds not minutes
+            if( DEMO_MODE ) timeMsec = checkTime*10*1000; // fire every checkTime x 10 seconds not minutes
                 // perhaps not less than every 30 sec? this creates a race condition if geo-loc slow
             if( checkTimerCreate < 1 ) {
              checkTimer = window.setInterval(DoIt, timeMsec);
@@ -838,8 +840,10 @@
             xte = dAndC2.dist*1800; // distance from expected location
             cseError = Math.abs( heading - course );   
             // FIXME, want to know which direction, port or stbd
-            if ( heading < course ) arrow = arrowStbd;
-            else arrow = arrowPort;
+            if ( cseError > 1 ) { 
+              if ( heading < course ) arrow = arrowStbd;
+              else arrow = arrowPort;
+            }
             console.log(`INFO  | DoItCb | xte: ${xte} (${xteVar}) cseError: ${cseError} (${accVar})`);
             UpdateDisplay();
             if (( cseError > accVar ) | ( xte > xteVar )) { // are we off course?
@@ -1121,9 +1125,9 @@ function PadNumber( num, pre, places )
 </div>
 <div id="help" style="display: block;">
 <ol>
+  <li>review <b>Settings</b> for desired check interval, off-course bearing and xte limit.</li>
   <li>Press <b>Stby</b> to capture an initial position.</li>
   <li>Get your vessel on to the desired heading, trim etc.</li>
-  <li>review <b>Settings</b> for desired check interval, off-course bearing and xte limit.</li>
   <li>press <b>Run</b> to capture the current position. A heading will be calculated and a timer started.</li>
   <li>When the timer expires  the current position will be updated and the course checked against the heading from earlier.</li>
   <li>If an alarm condition exists, the screen will flash and the klaxon will sound.</li>
