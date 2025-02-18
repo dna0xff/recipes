@@ -64,6 +64,7 @@
                      border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton:hover { outline-offset: 1px; } 
 
+      /* and the others */
       .minorButton2 { padding: 9px 10px; background: var(--minor-button); color: white; 
                      font-weight: bold; border-radius: 8px; outline: 1px solid var(--minor-button); } 
       .minorButton2:hover { outline-offset: 1px; } 
@@ -108,10 +109,10 @@
 
       // Sound file for audio alarm
       var audioAlarm = "illustrious.wav"
-      var version = "0.12"
+      var version = "0.13"
 
-      var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to seconds
-      // for 5 min check
+      var DEMO_MODE = true; // DEMO_MODE will simulate movement and reduce timer from minutes to 10 secondsa per min
+      // for 5 min check it will fire in 50 seconds
       var initDir = 30; initSpeed = 5.2; initDur = 50;
       var subsDir = 34; subsSpeed = 5.2; hemiSphere = "NE"
       var offsets = { accu: { latOffAcc: 0, lonOffAcc: 0, loopCount: 0, hemisp: "" },
@@ -136,7 +137,6 @@
 
       var objectId = {};  // retrieve on start-up and reuse instead of looking up again and again
       var c = {};         // retreive on start-up from css variables
-      // make this an object 
       var but = {
         reset: "ResetButton",
         run:   "RunButton",
@@ -253,7 +253,7 @@
 
 // this function throws an exception when called from timer callback
 // however the enable does not ???
-// may be the add remove. If called twice then 
+// may be the add remove. If called twice then  ?? 
 
       function disableButton( inButton )
       {
@@ -342,15 +342,17 @@
           console.log("DEBUG | chgSte | case: runStates.run ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.run; // lightgreen
             disableButton( but.run );
-            disableButton( but.reset);
+            disableButton( but.reset );
+            enableButton( but.off );
+            enableButton( but.stby );
           break;
           case runStates.alarm:
           console.log("DEBUG | chgSte | case: runStates.alarm ::"+inState+":: " );
             objectId.main.style.backgroundColor = c.alarm; // FireEngineRed
-            //disableButton( but.stby );
-            //disableButton( but.run );
-            //disableButton( but.off );
-            //enableButton( but.reset );
+            disableButton( but.stby );
+            disableButton( but.run );
+            disableButton( but.off );
+            enableButton( but.reset );
           break;
           default:
             console.log( "ERROR | chgSte | oops, default::"+inState+":: " );
@@ -509,6 +511,7 @@
           ResetData();
         }
         changeState( runStates.standby );
+        // FIXME this is a demo feature, need for intial OFF-> SYBY AND if user changes demo parms and re-runs
         calcOffsets();
         orangeLed();
         if (navigator.geolocation) {
@@ -681,11 +684,7 @@
           audioPlaying = true;
         }
         console.log("ALARM | dispAlarm | alarm but.reset is :"+but.reset+":: " );
-        enableButton( but.reset );
-        // these throw an exception
-            //disableButton( but.stby );
-            //disableButton( but.run );
-            //disableButton( but.off );
+        //  done in change state enableButton( but.reset );
         // if we are on the log or settings 
         //changeScreen( screen.main );
         changeState( runStates.alarm );
@@ -718,7 +717,7 @@
          alarmBg = !alarmBg;
       }
 
-      // Reset will the alarm condition, it may fire again on the next check. 
+      // Reset will clear the alarm condition, it may fire again on the next check. 
       function Reset()
       {
         if ( audioPlaying == true ) {
@@ -1061,7 +1060,7 @@ function PadNumber( num, pre, places )
 <!-- <div id="MainPage" width=400px > -->
 <div id="MainPage">
   <div><button onclick="RunMain()"     class="majorButton" id="RunButton">&nbsp;&nbsp;Run&nbsp;&nbsp;</button></div>
-  <div><button onclick="StandbyMain()" class="majorButton" id="StandbyButton">&nbsp;Stby&nbsp;</button></div>
+  <div><button onclick="StandbyMain()" class="majorButton" id="StbyButton">&nbsp;Stby&nbsp;</button></div>
   <div><button onclick="OffMain()"     class="majorButton" id="OffButton">&nbsp;OFF&nbsp;</button></div>
   <div class="rowbox" ><div class="red led" id="statusLed" ></div><div><output id="z"  class="statusBar"></div></div>
   <div><output id="z1" class="statusBar"></div>
